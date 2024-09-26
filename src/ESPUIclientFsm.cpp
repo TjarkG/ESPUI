@@ -17,16 +17,15 @@ bool fsm_EspuiClient_state_Idle::NotifyClient()
 {
 	bool Response = false;
 
-	// Serial.println(F("fsm_EspuiClient_state_Idle: NotifyClient"));
-	ESPUIclient::ESPUIclient::ClientUpdateType_t TypeToProcess = Parent->ClientUpdateType;
+	ESPUIclient::ClientUpdateType_t TypeToProcess = Parent->ClientUpdateType;
 	// Clear the type so that we capture any changes in type that happen
 	// while we are processing the current request.
-	Parent->ClientUpdateType = ESPUIclient::ESPUIclient::ClientUpdateType_t::Synchronized;
+	Parent->ClientUpdateType = ESPUIclient::ClientUpdateType_t::Synchronized;
 
 	// Start processing the current request.
 	switch (TypeToProcess)
 	{
-		case ESPUIclient::ESPUIclient::ClientUpdateType_t::Synchronized:
+		case ESPUIclient::ClientUpdateType_t::Synchronized:
 		{
 			// Serial.println(F("fsm_EspuiClient_state_Idle: NotifyClient:State:Synchronized"));
 			// Parent->fsm_EspuiClient_state_Idle_imp.Init();
@@ -78,7 +77,6 @@ void fsm_EspuiClient_state_Idle::ProcessAck(const uint16_t ControlIndex, const S
 //----------------------------------------------
 bool fsm_EspuiClient_state_SendingUpdate::NotifyClient()
 {
-	// Serial.println(F("fsm_EspuiClient_state_SendingUpdate:NotifyClient"));
 	return true; /* Ignore request */
 }
 
@@ -106,7 +104,6 @@ void fsm_EspuiClient_state_Rebuilding::Init()
 
 bool fsm_EspuiClient_state_Rebuilding::NotifyClient()
 {
-	// Serial.println(F("fsm_EspuiClient_state_Rebuilding: NotifyClient"));
 	return true; /* Ignore request */
 }
 
@@ -143,6 +140,5 @@ void fsm_EspuiClient_state_Reloading::ProcessAck(const uint16_t ControlIndex, co
 
 bool fsm_EspuiClient_state_Reloading::NotifyClient()
 {
-	// Serial.println(F("fsm_EspuiClient_state_Reloading: NotifyClient"));
 	return true; /* Ignore request */
 }

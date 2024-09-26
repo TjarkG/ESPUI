@@ -589,7 +589,7 @@ void ESPUIClass::updateControl(Control *control, int) const
 
 uint32_t ESPUIClass::GetNextControlChangeId()
 {
-	if (-1 == ControlChangeID)
+	if (static_cast<uint32_t>(-1) == ControlChangeID)
 	{
 		// force a reload which resets the counters
 		jsonReload();

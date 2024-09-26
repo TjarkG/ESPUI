@@ -62,7 +62,7 @@ public:
 	bool visible;
 	bool wide {false};
 	bool vertical {false};
-	bool enabled {false};
+	bool enabled {true};
 	uint16_t parentControl;
 	String panelStyle;
 	String elementStyle;
