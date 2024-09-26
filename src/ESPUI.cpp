@@ -25,40 +25,15 @@ static String heapInfo(const __FlashStringHelper *mode)
 	return result;
 }
 
-// ################# LITTLEFS functions
-void listDir(const char *dirname, const uint8_t levels)
+// LITTLEFS functions
+void ESPUIClass::listDir(const char *dirname, const uint8_t levels)
 {
-#if defined(DEBUG_ESPUI)
-    if (ESPUI.verbosity)
-    {
-        Serial.printf_P(PSTR("Listing directory: %s\n"), dirname);
-    }
-#endif
-
-	File root = ESPUI.EspuiLittleFS.open(dirname);
+	File root = EspuiLittleFS.open(dirname);
 	if (!root)
-	{
-#if defined(DEBUG_ESPUI)
-        if (ESPUI.verbosity)
-        {
-            Serial.println(F("Failed to open directory"));
-        }
-#endif
-
 		return;
-	}
 
 	if (!root.isDirectory())
-	{
-#if defined(DEBUG_ESPUI)
-        if (ESPUI.verbosity)
-        {
-            Serial.println(F("Not a directory"));
-        }
-#endif
-
 		return;
-	}
 
 	File file = root.openNextFile();
 
@@ -66,36 +41,15 @@ void listDir(const char *dirname, const uint8_t levels)
 	{
 		if (file.isDirectory())
 		{
-#if defined(DEBUG_ESPUI)
-            if (ESPUI.verbosity)
-            {
-                Serial.print(F("  DIR : "));
-                Serial.println(file.name());
-            }
-#endif
-
 			if (levels)
-			{
 				listDir(file.path(), levels - 1);
-			}
-		} else
-		{
-#if defined(DEBUG_ESPUI)
-            if (ESPUI.verbosity)
-            {
-                Serial.print(F("  FILE: "));
-                Serial.print(file.name());
-                Serial.print(F("  SIZE: "));
-                Serial.println(file.size());
-            }
-#endif
 		}
 
 		file = root.openNextFile();
 	}
 }
 
-void ESPUIClass::list() const
+void ESPUIClass::list()
 {
 	if (!EspuiLittleFS.begin())
 	{
@@ -111,84 +65,22 @@ void ESPUIClass::list() const
 	Serial.println(EspuiLittleFS.usedBytes() / 1024);
 }
 
-void deleteFile(const char *path)
+void ESPUIClass::deleteFile(const char *path) const
 {
-	const bool exists = ESPUI.EspuiLittleFS.exists(path);
+	const bool exists = EspuiLittleFS.exists(path);
 	if (!exists)
-	{
-#if defined(DEBUG_ESPUI)
-        if (ESPUI.verbosity)
-        {
-            Serial.printf_P(PSTR("File: %s does not exist, not deleting\n"), path);
-        }
-#endif
-
 		return;
-	}
 
-#if defined(DEBUG_ESPUI)
-    if (ESPUI.verbosity)
-    {
-        Serial.printf_P(PSTR("Deleting file: %s\n"), path);
-    }
-
-	bool didRemove = ESPUI.EspuiLittleFS.remove(path);
-	if (didRemove)
-	{
-        if (ESPUI.verbosity)
-        {
-            Serial.println(F("File deleted"));
-        }
-	} else
-	{
-        if (ESPUI.verbosity)
-        {
-            Serial.println(F("Delete failed"));
-        }
-	}
-#else
-	ESPUI.EspuiLittleFS.remove(path);
-#endif
+	EspuiLittleFS.remove(path);
 }
 
 void ESPUIClass::writeFile(const char *path, const char *data) const
 {
-#if defined(DEBUG_ESPUI)
-    if (ESPUI.verbosity)
-    {
-        Serial.printf_P(PSTR("Writing file: %s\n"), path);
-    }
-#endif
-
 	File file = EspuiLittleFS.open(path, FILE_WRITING);
 	if (!file)
-	{
-#if defined(DEBUG_ESPUI)
-        if (ESPUI.verbosity)
-        {
-            Serial.println(F("Failed to open file for writing"));
-        }
-#endif
-
 		return;
-	}
 
-	if (file.print(data))
-	{
-#if defined(DEBUG_ESPUI)
-        if (ESPUI.verbosity)
-        {
-            Serial.println(F("File written"));
-        }
-    }
-    else
-    {
-        if (ESPUI.verbosity)
-        {
-            Serial.println(F("Write failed"));
-        }
-#endif
-	}
+	file.print(data);
 	file.close();
 }
 
@@ -198,44 +90,14 @@ void ESPUIClass::prepareFileSystem(const bool format) const
 {
 	// this function should only be used once
 
-#if defined(DEBUG_ESPUI)
-    if (verbosity)
-    {
-        Serial.println(F("About to prepare filesystem..."));
-    }
-#endif
-
 	if (!EspuiLittleFS.begin(false)) // Test for an already formatted LittleFS by a mount failure
 	{
 		if (!EspuiLittleFS.begin(true)) // Attempt to format LittleFS
-		{
-#if defined(DEBUG_ESPUI)
-            if (verbosity)
-            {
-                Serial.println(F("LittleFS Format Failed"));
-            }
-#endif
 			return;
-		}
 	} else if (format)
 	{
 		EspuiLittleFS.format();
-
-#if defined(DEBUG_ESPUI)
-        if (verbosity)
-        {
-            Serial.println(F("LittleFS Formatted"));
-        }
-#endif
 	}
-
-#if defined(DEBUG_ESPUI)
-    if (verbosity)
-    {
-        listDir("/", 1);
-        Serial.println(F("LittleFS Mount ESP32 Done"));
-    }
-#endif
 
 	deleteFile("/index.htm");
 
@@ -247,13 +109,6 @@ void ESPUIClass::prepareFileSystem(const bool format) const
 	deleteFile("/js/slider.js");
 	deleteFile("/js/graph.js");
 	deleteFile("/js/tabbedcontent.js");
-
-#if defined(DEBUG_ESPUI)
-    if (verbosity)
-    {
-        Serial.println(F("Cleanup done"));
-    }
-#endif
 
 	// Now write
 	writeFile("/index.htm", HTML_INDEX);
@@ -268,18 +123,6 @@ void ESPUIClass::prepareFileSystem(const bool format) const
 
 	writeFile("/js/tabbedcontent.js", JS_TABBEDCONTENT);
 
-#if defined(DEBUG_ESPUI)
-    if (verbosity)
-    {
-        Serial.println(F("Done Initializing filesystem :-)"));
-    }
-
-    if (verbosity)
-    {
-        listDir("/", 1);
-    }
-#endif
-
 	EspuiLittleFS.end();
 }
 
@@ -288,21 +131,12 @@ void ESPUIClass::onWsEvent(
 	AsyncWebSocket *server, AsyncWebSocketClient *client, const AwsEventType type, void *arg, const uint8_t *data,
 	const size_t len)
 {
-	// Serial.println(String("ESPUIClass::OnWsEvent: type: ") + String(type));
 	RemoveToBeDeletedControls();
 
 	if (WS_EVT_DISCONNECT == type)
 	{
-#if defined(DEBUG_ESPUI)
-        if (verbosity)
-        {
-            Serial.println(F("WS_EVT_DISCONNECT"));
-        }
-#endif
-
 		if (MapOfClients.end() != MapOfClients.find(client->id()))
 		{
-			// Serial.println("Delete client.");
 			delete MapOfClients[client->id()];
 			MapOfClients.erase(client->id());
 		}
@@ -314,16 +148,10 @@ void ESPUIClass::onWsEvent(
 		}
 
 		if (MapOfClients.end() == MapOfClients.find(client->id()))
-		{
-			// Serial.println("ESPUIClass::OnWsEvent:Create new client.");
-			MapOfClients[client->id()] = new ESPUIclient(client);
-		}
+			MapOfClients[client->id()] = new esp_ui_client(client, *this);
 
 		if (MapOfClients[client->id()]->onWsEvent(type, arg, data, len))
-		{
-			// Serial.println("ESPUIClass::OnWsEvent:notify the clients that they need to be updated.");
-			NotifyClients(ESPUIclient::UpdateNeeded);
-		}
+			NotifyClients(esp_ui_client::UpdateNeeded);
 	}
 }
 
@@ -386,7 +214,7 @@ uint16_t ESPUIClass::addControl(
 
 	xSemaphoreGive(ControlsSemaphore);
 
-	NotifyClients(ESPUIclient::ClientUpdateType_t::RebuildNeeded);
+	NotifyClients(esp_ui_client::ClientUpdateType_t::RebuildNeeded);
 
 	if (control)
 		return control->id;
@@ -410,15 +238,9 @@ bool ESPUIClass::removeControl(const uint16_t id, const bool force_rebuild_ui)
 			jsonReload();
 		} else
 		{
-			NotifyClients(ESPUIclient::ClientUpdateType_t::RebuildNeeded);
+			NotifyClients(esp_ui_client::ClientUpdateType_t::RebuildNeeded);
 		}
 	}
-#ifdef DEBUG_ESPUI
-    else
-    {
-        // Serial.println(String("Could not Remove Control ") + String(id));
-    }
-#endif // def DEBUG_ESPUI
 
 	return Response;
 }
@@ -523,7 +345,7 @@ uint16_t ESPUIClass::gauge(const char *label, const ControlColor color, const in
 
 void ESPUIClass::separator(const char *label)
 {
-	addControl(ControlType::Separator, label, "", ControlColor::Alizarin, Control::noParent, nullptr);
+	addControl(ControlType::Separator, label, "", ControlColor::Red, Control::noParent, nullptr);
 }
 
 uint16_t ESPUIClass::fileDisplay(const char *label, const ControlColor color, const String &filename)
@@ -576,15 +398,15 @@ Control *ESPUIClass::getControlNoLock(const uint16_t id) const
 	return Response;
 }
 
-void ESPUIClass::updateControl(Control *control, int) const
+void ESPUIClass::updateControl(Control *control, int)
 {
 	if (!control)
 	{
 		return;
 	}
 	// tell the control it has been updated
-	control->SetControlChangedId(ESPUI.GetNextControlChangeId());
-	NotifyClients(ESPUIclient::ClientUpdateType_t::UpdateNeeded);
+	control->SetControlChangedId(GetNextControlChangeId());
+	NotifyClients(esp_ui_client::ClientUpdateType_t::UpdateNeeded);
 }
 
 uint32_t ESPUIClass::GetNextControlChangeId()
@@ -597,7 +419,7 @@ uint32_t ESPUIClass::GetNextControlChangeId()
 	return ++ControlChangeID;
 }
 
-void ESPUIClass::setPanelStyle(const uint16_t id, const String &style, const int clientId) const
+void ESPUIClass::setPanelStyle(const uint16_t id, const String &style, const int clientId)
 {
 	Control *control = getControl(id);
 	if (control)
@@ -607,7 +429,7 @@ void ESPUIClass::setPanelStyle(const uint16_t id, const String &style, const int
 	}
 }
 
-void ESPUIClass::setElementStyle(const uint16_t id, const String &style, const int clientId) const
+void ESPUIClass::setElementStyle(const uint16_t id, const String &style, const int clientId)
 {
 	Control *control = getControl(id);
 	if (control)
@@ -617,7 +439,7 @@ void ESPUIClass::setElementStyle(const uint16_t id, const String &style, const i
 	}
 }
 
-void ESPUIClass::setInputType(const uint16_t id, const String &type, const int clientId) const
+void ESPUIClass::setInputType(const uint16_t id, const String &type, const int clientId)
 {
 	Control *control = getControl(id);
 	if (control)
@@ -636,12 +458,11 @@ void ESPUIClass::setPanelWide(const uint16_t id, const bool wide) const
 	}
 }
 
-void ESPUIClass::setEnabled(const uint16_t id, const bool enabled, const int clientId) const
+void ESPUIClass::setEnabled(const uint16_t id, const bool enabled, const int clientId)
 {
 	Control *control = getControl(id);
 	if (control)
 	{
-		// Serial.println(String("CreateAllowed: id: ") + String(clientId) + " State: " + String(enabled));
 		control->enabled = enabled;
 		updateControl(control, clientId);
 	}
@@ -656,75 +477,49 @@ void ESPUIClass::setVertical(const uint16_t id, const bool vert) const
 	}
 }
 
-void ESPUIClass::updateControl(uint16_t id, const int clientId) const
+void ESPUIClass::updateControl(uint16_t id, const int clientId)
 {
 	Control *control = getControl(id);
 
 	if (!control)
-	{
-#if defined(DEBUG_ESPUI)
-        if (verbosity)
-        {
-            Serial.printf_P(PSTR("Error: Update Control: There is no control with ID %d\n"), id);
-        }
-#endif
 		return;
-	}
 
 	updateControl(control, clientId);
 }
 
-void ESPUIClass::updateControlValue(Control *control, const String &value, const int clientId) const
+void ESPUIClass::updateControlValue(Control *control, const String &value, const int clientId)
 {
 	if (!control)
-	{
 		return;
-	}
 
 	control->value = value;
 	updateControl(control, clientId);
 }
 
-void ESPUIClass::updateControlValue(uint16_t id, const String &value, const int clientId) const
+void ESPUIClass::updateControlValue(uint16_t id, const String &value, const int clientId)
 {
 	Control *control = getControl(id);
 
 	if (!control)
-	{
-#if defined(DEBUG_ESPUI)
-        if (verbosity)
-        {
-            Serial.printf_P(PSTR("Error: updateControlValue Control: There is no control with ID %d\n"), id);
-        }
-#endif
 		return;
-	}
 
 	updateControlValue(control, value, clientId);
 }
 
-void ESPUIClass::updateControlLabel(const uint16_t id, const char *value, const int clientId) const
+void ESPUIClass::updateControlLabel(const uint16_t id, const char *value, const int clientId)
 {
 	updateControlLabel(getControl(id), value, clientId);
 }
 
-void ESPUIClass::updateControlLabel(Control *control, const char *value, const int clientId) const
+void ESPUIClass::updateControlLabel(Control *control, const char *value, const int clientId)
 {
 	if (!control)
-	{
-#if defined(DEBUG_ESPUI)
-        if (verbosity)
-        {
-            Serial.printf_P(PSTR("Error: updateControlLabel Control: There is no control with the requested ID \n"));
-        }
-#endif
 		return;
-	}
 	control->label = value;
 	updateControl(control, clientId);
 }
 
-void ESPUIClass::updateVisibility(const uint16_t id, const bool visibility, const int clientId) const
+void ESPUIClass::updateVisibility(const uint16_t id, const bool visibility, const int clientId)
 {
 	Control *control = getControl(id);
 	if (control)
@@ -734,52 +529,52 @@ void ESPUIClass::updateVisibility(const uint16_t id, const bool visibility, cons
 	}
 }
 
-void ESPUIClass::print(const uint16_t id, const String &value) const
+void ESPUIClass::print(const uint16_t id, const String &value)
 {
 	updateControlValue(id, value);
 }
 
-void ESPUIClass::updateLabel(const uint16_t id, const String &value) const
+void ESPUIClass::updateLabel(const uint16_t id, const String &value)
 {
 	updateControlValue(id, value);
 }
 
-void ESPUIClass::updateButton(const uint16_t id, const String &value) const
+void ESPUIClass::updateButton(const uint16_t id, const String &value)
 {
 	updateControlValue(id, value);
 }
 
-void ESPUIClass::updateSlider(const uint16_t id, const int nValue, const int clientId) const
+void ESPUIClass::updateSlider(const uint16_t id, const int nValue, const int clientId)
 {
 	updateControlValue(id, String(nValue), clientId);
 }
 
-void ESPUIClass::updateSwitcher(const uint16_t id, const bool nValue, const int clientId) const
+void ESPUIClass::updateSwitcher(const uint16_t id, const bool nValue, const int clientId)
 {
 	updateControlValue(id, String(nValue ? "1" : "0"), clientId);
 }
 
-void ESPUIClass::updateNumber(const uint16_t id, const int number, const int clientId) const
+void ESPUIClass::updateNumber(const uint16_t id, const int number, const int clientId)
 {
 	updateControlValue(id, String(number), clientId);
 }
 
-void ESPUIClass::updateText(const uint16_t id, const String &text, const int clientId) const
+void ESPUIClass::updateText(const uint16_t id, const String &text, const int clientId)
 {
 	updateControlValue(id, text, clientId);
 }
 
-void ESPUIClass::updateSelect(const uint16_t id, const String &text, const int clientId) const
+void ESPUIClass::updateSelect(const uint16_t id, const String &text, const int clientId)
 {
 	updateControlValue(id, text, clientId);
 }
 
-void ESPUIClass::updateGauge(const uint16_t id, const int number, const int clientId) const
+void ESPUIClass::updateGauge(const uint16_t id, const int number, const int clientId)
 {
 	updateControlValue(id, String(number), clientId);
 }
 
-void ESPUIClass::updateTime(const uint16_t id, const int clientId) const
+void ESPUIClass::updateTime(const uint16_t id, const int clientId)
 {
 	updateControl(id, clientId);
 }
@@ -849,11 +644,11 @@ bool ESPUIClass::SendJsonDocToWebSocket(const ArduinoJson::JsonDocument &documen
 
 void ESPUIClass::jsonDom(uint16_t, AsyncWebSocketClient *, bool) const
 {
-	NotifyClients(ESPUIclient::ClientUpdateType_t::RebuildNeeded);
+	NotifyClients(esp_ui_client::ClientUpdateType_t::RebuildNeeded);
 }
 
 // Tell all the clients that they need to ask for an upload of the control data.
-void ESPUIClass::NotifyClients(const ESPUIclient::ClientUpdateType_t newState) const
+void ESPUIClass::NotifyClients(const esp_ui_client::ClientUpdateType_t newState) const
 {
 	for (const auto &CurrentClient: MapOfClients)
 	{
@@ -864,97 +659,38 @@ void ESPUIClass::NotifyClients(const ESPUIclient::ClientUpdateType_t newState) c
 void ESPUIClass::jsonReload() const
 {
 	for (const auto &CurrentClient: MapOfClients)
-	{
-		// Serial.println("Requesting Reload");
-		CurrentClient.second->NotifyClient(ESPUIclient::ClientUpdateType_t::ReloadNeeded);
-	}
+		CurrentClient.second->NotifyClient(esp_ui_client::ClientUpdateType_t::ReloadNeeded);
 }
 
-void ESPUIClass::beginSPIFFS(const char *_title, const char *username, const char *password, const uint16_t port)
-{
-	// Backwards compatibility wrapper
-	beginLITTLEFS(_title, username, password, port);
-}
-
-void ESPUIClass::beginLITTLEFS(const char *_title, const char *username, const char *password, const uint16_t port)
+void ESPUIClass::beginLITTLEFS(const char *_title, const uint16_t port)
 {
 	ui_title = _title;
-	basicAuthUsername = username;
-	basicAuthPassword = password;
-
-	if (username == nullptr && password == nullptr)
-	{
-		basicAuth = false;
-	} else
-	{
-		basicAuth = true;
-	}
 
 	server = new AsyncWebServer(port);
 	ws = new AsyncWebSocket("/ws");
 
 	const bool fsBegin = EspuiLittleFS.begin();
 	if (!fsBegin)
-	{
-#if defined(DEBUG_ESPUI)
-        if (verbosity)
-        {
-            Serial.println(F("LITTLEFS Mount Failed, PLEASE CHECK THE README ON HOW TO "
-                             "PREPARE YOUR ESP!!!!!!!"));
-        }
-#endif
-
 		return;
-	}
 
-#if defined(DEBUG_ESPUI)
-    if (verbosity)
-    {
-        listDir("/", 1);
-    }
-#endif
 
 	const bool indexExists = EspuiLittleFS.exists("/index.htm");
 	if (!indexExists)
-	{
-#if defined(DEBUG_ESPUI)
-        if (verbosity)
-        {
-            Serial.println(F("Please read the README!!!!!!!, Make sure to "
-                             "prepareFileSystem() once in an empty sketch"));
-        }
-#endif
-
 		return;
-	}
 
-	ws->onEvent([](AsyncWebSocket *server, AsyncWebSocketClient *client, const AwsEventType type, void *arg,
-	               const uint8_t *data,
-	               const size_t len)
+	ws->onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client, const AwsEventType type, void *arg,
+	                   const uint8_t *data,
+	                   const size_t len)
 	{
-		ESPUI.onWsEvent(server, client, type, arg, data, len);
+		onWsEvent(server, client, type, arg, data, len);
 	});
 	server->addHandler(ws);
 
-	if (basicAuth)
-	{
-#if (WS_AUTHENTICATION)
-		ws->setAuthentication(basicAuthUsername, basicAuthPassword);
-#endif
-		server->serveStatic("/", EspuiLittleFS, "/").setDefaultFile("index.htm").setAuthentication(username, password);
-	} else
-	{
-		server->serveStatic("/", EspuiLittleFS, "/").setDefaultFile("index.htm");
-	}
+	server->serveStatic("/", EspuiLittleFS, "/").setDefaultFile("index.htm");
 
 	// Heap for general Servertest
 	server->on("/heap", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		if (ESPUI.basicAuth && !request->authenticate(ESPUI.basicAuthUsername, ESPUI.basicAuthPassword))
-		{
-			return request->requestAuthentication();
-		}
-
 		request->send(200, "text/plain", heapInfo(F("In LITTLEFS mode")));
 	});
 
@@ -970,54 +706,26 @@ void ESPUIClass::beginLITTLEFS(const char *_title, const char *username, const c
 	});
 
 	server->begin();
-
-#if defined(DEBUG_ESPUI)
-    if (verbosity)
-    {
-        Serial.println(F("UI Initialized"));
-    }
-#endif
 }
 
-void ESPUIClass::begin(const char *_title, const char *username, const char *password, const uint16_t port)
+void ESPUIClass::begin(const char *_title, const uint16_t port)
 {
-	basicAuthUsername = username;
-	basicAuthPassword = password;
-
-	if (username != nullptr && password != nullptr)
-	{
-		basicAuth = true;
-	} else
-	{
-		basicAuth = false;
-	}
-
 	ui_title = _title;
 
 	server = new AsyncWebServer(port);
 	ws = new AsyncWebSocket("/ws");
 
-	ws->onEvent([](AsyncWebSocket *server, AsyncWebSocketClient *client, const AwsEventType type, void *arg,
-	               const uint8_t *data,
-	               const size_t len)
+	ws->onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client, const AwsEventType type, void *arg,
+	                   const uint8_t *data,
+	                   const size_t len)
 	{
-		ESPUI.onWsEvent(server, client, type, arg, data, len);
+		onWsEvent(server, client, type, arg, data, len);
 	});
 
 	server->addHandler(ws);
 
-#if (WS_AUTHENTICATION)
-	if (basicAuth)
-		ws->setAuthentication(username, password);
-#endif
-
 	server->on("/", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		if (ESPUI.basicAuth && !request->authenticate(ESPUI.basicAuthUsername, ESPUI.basicAuthPassword))
-		{
-			return request->requestAuthentication();
-		}
-
 		AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", HTML_INDEX);
 		request->send(response);
 	});
@@ -1026,11 +734,6 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 
 	server->on("/js/zepto.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		if (ESPUI.basicAuth && !request->authenticate(ESPUI.basicAuthUsername, ESPUI.basicAuthPassword))
-		{
-			return request->requestAuthentication();
-		}
-
 		AsyncWebServerResponse *response
 				= request->beginResponse_P(200, "application/javascript", JS_ZEPTO_GZIP, sizeof(JS_ZEPTO_GZIP));
 		response->addHeader("Content-Encoding", "gzip");
@@ -1039,11 +742,6 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 
 	server->on("/js/controls.js", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		if (ESPUI.basicAuth && !request->authenticate(ESPUI.basicAuthUsername, ESPUI.basicAuthPassword))
-		{
-			return request->requestAuthentication();
-		}
-
 		AsyncWebServerResponse *response
 				= request->beginResponse_P(200, "application/javascript", JS_CONTROLS_GZIP, sizeof(JS_CONTROLS_GZIP));
 		response->addHeader("Content-Encoding", "gzip");
@@ -1052,11 +750,6 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 
 	server->on("/js/slider.js", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		if (ESPUI.basicAuth && !request->authenticate(ESPUI.basicAuthUsername, ESPUI.basicAuthPassword))
-		{
-			return request->requestAuthentication();
-		}
-
 		AsyncWebServerResponse *response
 				= request->beginResponse_P(200, "application/javascript", JS_SLIDER_GZIP, sizeof(JS_SLIDER_GZIP));
 		response->addHeader("Content-Encoding", "gzip");
@@ -1065,11 +758,6 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 
 	server->on("/js/graph.js", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		if (ESPUI.basicAuth && !request->authenticate(ESPUI.basicAuthUsername, ESPUI.basicAuthPassword))
-		{
-			return request->requestAuthentication();
-		}
-
 		AsyncWebServerResponse *response
 				= request->beginResponse_P(200, "application/javascript", JS_GRAPH_GZIP, sizeof(JS_GRAPH_GZIP));
 		response->addHeader("Content-Encoding", "gzip");
@@ -1078,11 +766,6 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 
 	server->on("/js/tabbedcontent.js", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		if (ESPUI.basicAuth && !request->authenticate(ESPUI.basicAuthUsername, ESPUI.basicAuthPassword))
-		{
-			return request->requestAuthentication();
-		}
-
 		AsyncWebServerResponse *response = request->beginResponse_P(
 			200, "application/javascript", JS_TABBEDCONTENT_GZIP, sizeof(JS_TABBEDCONTENT_GZIP));
 		response->addHeader("Content-Encoding", "gzip");
@@ -1093,11 +776,6 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 
 	server->on("/css/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		if (ESPUI.basicAuth && !request->authenticate(ESPUI.basicAuthUsername, ESPUI.basicAuthPassword))
-		{
-			return request->requestAuthentication();
-		}
-
 		AsyncWebServerResponse *response
 				= request->beginResponse_P(200, "text/css", CSS_STYLE_GZIP, sizeof(CSS_STYLE_GZIP));
 		response->addHeader("Content-Encoding", "gzip");
@@ -1106,11 +784,6 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 
 	server->on("/css/normalize.css", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		if (ESPUI.basicAuth && !request->authenticate(ESPUI.basicAuthUsername, ESPUI.basicAuthPassword))
-		{
-			return request->requestAuthentication();
-		}
-
 		AsyncWebServerResponse *response
 				= request->beginResponse_P(200, "text/css", CSS_NORMALIZE_GZIP, sizeof(CSS_NORMALIZE_GZIP));
 		response->addHeader("Content-Encoding", "gzip");
@@ -1120,12 +793,7 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 	// Heap for general Servertest
 	server->on("/heap", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		if (ESPUI.basicAuth && !request->authenticate(ESPUI.basicAuthUsername, ESPUI.basicAuthPassword))
-		{
-			return request->requestAuthentication();
-		}
-
-		request->send(200, "text/plain", heapInfo(F("In Memorymode")));
+		request->send(200, "text/plain", heapInfo(F("In Memory Mode")));
 	});
 
 	server->onNotFound([this](AsyncWebServerRequest *request)
@@ -1143,25 +811,9 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 			response->write(responseText.c_str(), responseText.length());
 			request->send(response);
 		} else
-		{
 			request->send(404);
-		}
 		yield();
 	});
 
 	server->begin();
-
-#if defined(DEBUG_ESPUI)
-    if (verbosity)
-    {
-        Serial.println(F("UI Initialized"));
-    }
-#endif
 }
-
-void ESPUIClass::setVerbosity(const Verbosity v)
-{
-	verbosity = v;
-}
-
-ESPUIClass ESPUI;

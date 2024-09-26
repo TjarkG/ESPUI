@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // forward declaration
-class ESPUIclient;
+class esp_ui_client;
 
 class fsm_EspuiClient_state
 {
@@ -18,10 +18,10 @@ public:
 
 	virtual void ProcessAck(uint16_t id, String FragmentRequest) = 0;
 
-	void SetParent(ESPUIclient *value) { Parent = value; }
+	void SetParent(esp_ui_client *value) { Parent = value; }
 
 protected:
-	ESPUIclient *Parent = nullptr;
+	esp_ui_client *Parent = nullptr;
 };
 
 class fsm_EspuiClient_state_Idle final : public fsm_EspuiClient_state

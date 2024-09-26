@@ -53,53 +53,37 @@ bool Control::MarshalControl(const JsonObject &_item,
                              const bool refresh,
                              const uint32_t StartingOffset,
                              const uint32_t AvailMarshaledLength,
-                             uint32_t &EstimatedMarshaledLength) const
+                             uint32_t &EstimatedMarshaledLength,
+                             const ESPUIClass &ui) const
 {
 	// this code assumes MaxMarshaledLength > JsonMarshalingRatio
-	// Serial.println(String("MarshalControl:           StartingOffset: ") + String(StartingOffset));
-	// Serial.println(String("MarshalControl:     AvailMarshaledLength: ") + String(AvailMarshaledLength));
-	// Serial.println(String("MarshalControl:               Control ID: ") + String(id));
 
 	bool ControlIsFragmented = false;
 	// create a new item in the response document
 	const JsonObject &item = _item;
 
 	// how much space do we expect to use?
-	//const uint32_t ValueMarshaledLength = (value.length() - StartingOffset) * JsonMarshalingRatio;
 	const uint32_t LabelMarshaledLength = strlen(label) * JsonMarshalingRatio;
 	const uint32_t MinimumMarshaledLength = LabelMarshaledLength + JsonMarshaledOverhead;
-	//uint32_t MaximumMarshaledLength = ValueMarshaledLength + MinimumMarshaledLength;
 	const uint32_t SpaceForMarshaledValue = AvailMarshaledLength - MinimumMarshaledLength;
-	// Serial.println(String("MarshalControl:           value.length(): ") + String(value.length()));
-	// Serial.println(String("MarshalControl:     ValueMarshaledLength: ") + String(ValueMarshaledLength));
-	// Serial.println(String("MarshalControl:     LabelMarshaledLength: ") + String(LabelMarshaledLength));
-	// Serial.println(String("MarshalControl:   MaximumMarshaledLength: ") + String(MaximumMarshaledLength));
-	// Serial.println(String("MarshalControl:   MinimumMarshaledLength: ") + String(MinimumMarshaledLength));
-	// Serial.println(String("MarshalControl:   SpaceForMarshaledValue: ") + String(SpaceForMarshaledValue));
 
 	// will the item fit in the remaining space? Fragment if not
 	if (AvailMarshaledLength < MinimumMarshaledLength)
 	{
-		// Serial.println(String("MarshalControl: Cannot Marshal control. Not enough space for basic headers."));
 		EstimatedMarshaledLength = 0;
 		return false;
 	}
 
-	const uint32_t MaxValueLength = (SpaceForMarshaledValue / JsonMarshalingRatio);
-	// Serial.println(String("MarshalControl:           MaxValueLength: ") + String(MaxValueLength));
+	const uint32_t MaxValueLength = SpaceForMarshaledValue / JsonMarshalingRatio;
 
-	const uint32_t ValueLenToSend = min((value.length() - StartingOffset), MaxValueLength);
-	// Serial.println(String("MarshalControl:           ValueLenToSend: ") + String(ValueLenToSend));
+	const uint32_t ValueLenToSend = min(value.length() - StartingOffset, MaxValueLength);
 
-	const uint32_t AdjustedMarshaledLength = (ValueLenToSend * JsonMarshalingRatio) + MinimumMarshaledLength;
-	// Serial.println(String("MarshalControl:  AdjustedMarshaledLength: ") + String(AdjustedMarshaledLength));
+	const uint32_t AdjustedMarshaledLength = ValueLenToSend * JsonMarshalingRatio + MinimumMarshaledLength;
 
-	const bool NeedToFragment = (ValueLenToSend < value.length());
-	// Serial.println(String("MarshalControl:           NeedToFragment: ") + String(NeedToFragment));
+	const bool NeedToFragment = ValueLenToSend < value.length();
 
-	if ((AdjustedMarshaledLength > AvailMarshaledLength) && (0 != ValueLenToSend))
+	if (AdjustedMarshaledLength > AvailMarshaledLength && 0 != ValueLenToSend)
 	{
-		// Serial.println(String("MarshalControl: Cannot Marshal control. Not enough space for marshaled control."));
 		EstimatedMarshaledLength = 0;
 		return false;
 	}
@@ -109,27 +93,12 @@ bool Control::MarshalControl(const JsonObject &_item,
 	// are we fragmenting?
 	if (NeedToFragment || StartingOffset)
 	{
-		// Serial.println(String("MarshalControl:Start Fragment Processing"));
-		// Serial.println(String("MarshalControl:id:                ") + String(id));
-		// Serial.println(String("MarshalControl:StartingOffset:    ") + String(StartingOffset));
-		/*
-		        if(0 == StartingOffset)
-		        {
-		            Serial.println(String("MarshalControl: New control to fragement. ID: ") + String(id));
-		        }
-		        else
-		        {
-		            Serial.println(String("MarshalControl: Next fragement. ID: ") + String(id));
-		        }
-		*/
 		// indicate that no additional controls should be sent
 		ControlIsFragmented = true;
 
 		// fill in the fragment header
 		_item[F("type")] = static_cast<uint32_t>(ControlType::Fragment);
 		_item[F("id")] = id;
-
-		// Serial.println(String("MarshalControl:Final length:      ") + String(length));
 
 		_item[F("offset")] = StartingOffset;
 		_item[F("length")] = ValueLenToSend;
@@ -169,7 +138,7 @@ bool Control::MarshalControl(const JsonObject &_item,
 	// "selected" to <option>
 	if (ControlType::Option == type)
 	{
-		const Control *ParentControl = ESPUI.getControlNoLock(parentControl);
+		const Control *ParentControl = ui.getControlNoLock(parentControl);
 		if (nullptr == ParentControl)
 		{
 			item[F("selected")] = emptyString;
@@ -182,7 +151,6 @@ bool Control::MarshalControl(const JsonObject &_item,
 		}
 	}
 
-	// Serial.println(String("MarshalControl:Done"));
 	return ControlIsFragmented;
 }
 
@@ -193,7 +161,7 @@ void Control::MarshalErrorMessage(const JsonObject &item) const
 	item[F("label")] = ControlError.c_str();
 	item[F("value")] = ControlError;
 	item[F("visible")] = true;
-	item[F("color")] = static_cast<int>(ControlColor::Carrot);
+	item[F("color")] = static_cast<int>(ControlColor::Orange);
 	item[F("enabled")] = true;
 
 	if (parentControl != noParent)
@@ -202,22 +170,12 @@ void Control::MarshalErrorMessage(const JsonObject &item) const
 	}
 }
 
-void Control::onWsEvent(const String &cmd, const String &data)
+void Control::onWsEvent(const String &cmd, const String &data,ESPUIClass &ui)
 {
-	// Serial.println(String(F("Control::onWsEvent")));
-	SetControlChangedId(ESPUI.GetNextControlChangeId());
+	SetControlChangedId(ui.GetNextControlChangeId());
 	if (!HasCallback())
-	{
-#if defined(DEBUG_ESPUI)
-        if (ESPUI.verbosity)
-        {
-            Serial.println(String(F("Control::onWsEvent:No callback found for ID ")) + String(id));
-        }
-#endif
 		return;
-	}
 
-	// Serial.println("Control::onWsEvent:Generating callback");
 	if (cmd.equals(F("bdown")))
 	{
 		SendCallback(B_DOWN);
@@ -305,10 +263,4 @@ void Control::onWsEvent(const String &cmd, const String &data)
 		// updateControl(c, client->id());
 		SendCallback(TM_VALUE);
 	}
-#if defined(DEBUG_ESPUI)
-    else if (ESPUI.verbosity)
-    {
-        Serial.println(F("Control::onWsEvent:Malformed message from the websocket"));
-    }
-#endif
 }

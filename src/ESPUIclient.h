@@ -1,16 +1,23 @@
 #pragma once
 
-#include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
+
 #include "ESPUIclientFsm.h"
 
-class ESPUIclient
+
+class ESPUIClass;
+
+class esp_ui_client final
 {
+	uint32_t CurrentSyncID = 0;
+	uint32_t NextSyncID = 0;
+	ESPUIClass &ui;
+
 public:
 	enum ClientUpdateType_t
 	{
-		// this is an orderd list. highest number is highest priority
+		// this is an ordered list. highest number is the highest priority
 		Synchronized = 0,
 		UpdateNeeded = 1,
 		RebuildNeeded = 2,
@@ -18,7 +25,7 @@ public:
 	};
 
 protected:
-	// bool HasBeenNotified      = false;  // Set when a notification has been sent and we are waiting for a reply
+	// bool HasBeenNotified      = false;  // Set when a notification has been sent, and we are waiting for a reply
 	// bool DelayedNotification  = false;  // set if a delayed notification is needed
 
 	ClientUpdateType_t ClientUpdateType = ClientUpdateType_t::RebuildNeeded;
@@ -44,7 +51,7 @@ protected:
 
 	bool CanSend() const;
 
-	static void FillInHeader(JsonDocument &document);
+	void FillInHeader(JsonDocument &document) const;
 
 	uint32_t prepareJSONChunk(uint16_t startindex, JsonDocument &rootDoc, bool InUpdateMode, const String &value) const;
 
@@ -52,22 +59,18 @@ protected:
 
 	bool SendClientNotification(ClientUpdateType_t value) const;
 
-private:
-	uint32_t CurrentSyncID = 0;
-	uint32_t NextSyncID = 0;
-
 public:
-	explicit ESPUIclient(AsyncWebSocketClient *_client);
+	esp_ui_client(AsyncWebSocketClient *client, ESPUIClass &ui);
 
-	ESPUIclient(const ESPUIclient &source);
+	esp_ui_client(const esp_ui_client &source);
 
-	virtual ~ESPUIclient();
+	~esp_ui_client();
 
 	void NotifyClient(ClientUpdateType_t value);
 
 	bool onWsEvent(AwsEventType type, void *arg, const uint8_t *data, size_t len);
 
-	bool IsSyncronized() const;
+	bool IsSynchronized() const;
 
 	uint32_t id() const { return client->id(); }
 

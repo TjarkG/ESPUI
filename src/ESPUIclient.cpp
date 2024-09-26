@@ -1,5 +1,5 @@
-#include "ESPUI.h"
 #include "ESPUIclient.h"
+#include <ESPUI.h>
 #include "ESPUIcontrol.h"
 
 // JSONSlave:
@@ -48,8 +48,8 @@ protected:
 	size_t counter = 0;
 };
 
-ESPUIclient::ESPUIclient(AsyncWebSocketClient *_client):
-	client(_client)
+esp_ui_client::esp_ui_client(AsyncWebSocketClient *client, ESPUIClass &ui):
+	ui(ui), client(client)
 {
 	fsm_EspuiClient_state_Idle_imp.SetParent(this);
 	fsm_EspuiClient_state_SendingUpdate_imp.SetParent(this);
@@ -59,8 +59,8 @@ ESPUIclient::ESPUIclient(AsyncWebSocketClient *_client):
 	fsm_EspuiClient_state_Idle_imp.Init();
 }
 
-ESPUIclient::ESPUIclient(const ESPUIclient &source):
-	client(source.client)
+esp_ui_client::esp_ui_client(const esp_ui_client &source):
+	ui(source.ui), client(source.client)
 {
 	fsm_EspuiClient_state_Idle_imp.SetParent(this);
 	fsm_EspuiClient_state_SendingUpdate_imp.SetParent(this);
@@ -70,9 +70,9 @@ ESPUIclient::ESPUIclient(const ESPUIclient &source):
 	fsm_EspuiClient_state_Idle_imp.Init();
 }
 
-ESPUIclient::~ESPUIclient() = default;
+esp_ui_client::~esp_ui_client() = default;
 
-bool ESPUIclient::CanSend() const
+bool esp_ui_client::CanSend() const
 {
 	bool Response = false;
 	if (nullptr != client)
@@ -82,30 +82,30 @@ bool ESPUIclient::CanSend() const
 	return Response;
 }
 
-void ESPUIclient::FillInHeader(JsonDocument &document)
+void esp_ui_client::FillInHeader(JsonDocument &document) const
 {
 	document[F("type")] = UI_EXTEND_GUI;
-	document[F("sliderContinuous")] = ESPUI.sliderContinuous;
+	document[F("sliderContinuous")] = ui.sliderContinuous;
 	document[F("startindex")] = 0;
-	document[F("totalcontrols")] = ESPUI.controlCount;
+	document[F("totalcontrols")] = ui.controlCount;
 	const JsonArray items = AllocateJsonArray(document, F("controls"));
 	const JsonObject titleItem = AllocateJsonObject(items);
-	titleItem[F("type")] = static_cast<int>(UI_TITLE);
-	titleItem[F("label")] = ESPUI.ui_title;
+	titleItem[F("type")] = static_cast<int>(ControlType::Title);
+	titleItem[F("label")] = ui.ui_title;
 }
 
-bool ESPUIclient::IsSyncronized() const
+bool esp_ui_client::IsSynchronized() const
 {
 	return Synchronized == ClientUpdateType &&
 	       &fsm_EspuiClient_state_Idle_imp == pCurrentFsmState;
 }
 
-bool ESPUIclient::SendClientNotification(const ClientUpdateType_t value) const
+bool esp_ui_client::SendClientNotification(const ClientUpdateType_t value) const
 {
 	if (!CanSend())
 		return false;
 
-	AllocateJsonDocument(document, ESPUI.jsonUpdateDocumentSize);
+	AllocateJsonDocument(document, ui.jsonUpdateDocumentSize);
 	FillInHeader(document);
 	if (ReloadNeeded == value)
 		document["type"] = static_cast<int>(UI_RELOAD);
@@ -115,14 +115,14 @@ bool ESPUIclient::SendClientNotification(const ClientUpdateType_t value) const
 	return Response;
 }
 
-void ESPUIclient::NotifyClient(const ClientUpdateType_t newState)
+void esp_ui_client::NotifyClient(const ClientUpdateType_t newState)
 {
 	SetState(newState);
 	pCurrentFsmState->NotifyClient();
 }
 
 // Handle Websockets Communication
-bool ESPUIclient::onWsEvent(const AwsEventType type, void *arg, const uint8_t *data, const size_t len)
+bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t *data, const size_t len)
 {
 	bool Response = false;
 
@@ -131,18 +131,18 @@ bool ESPUIclient::onWsEvent(const AwsEventType type, void *arg, const uint8_t *d
 #if defined(DEBUG_ESPUI)
 		case WS_EVT_PONG:
 		{
-            if (ESPUI.verbosity)
+            if (ui.verbosity)
             {
-                Serial.println(F("ESPUIclient::OnWsEvent:WS_EVT_PONG"));
+                Serial.println(F("esp_ui_client::OnWsEvent:WS_EVT_PONG"));
             }
 			break;
 		}
 
 		case WS_EVT_ERROR:
 		{
-            if (ESPUI.verbosity)
+            if (ui.verbosity)
             {
-                Serial.println(F("ESPUIclient::OnWsEvent:WS_EVT_ERROR"));
+                Serial.println(F("esp_ui_client::OnWsEvent:WS_EVT_ERROR"));
             }
 			break;
 		}
@@ -169,7 +169,7 @@ bool ESPUIclient::onWsEvent(const AwsEventType type, void *arg, const uint8_t *d
 			uint16_t id = msg.substring(msg.lastIndexOf(':') + 1).toInt();
 
 #if defined(DEBUG_ESPUI)
-                if (ESPUI.verbosity >= Verbosity::VerboseJSON)
+                if (ui.verbosity >= Verbosity::VerboseJSON)
                 {
                     Serial.println(String(F("  WS msg: ")) + msg);
                     Serial.println(String(F("  WS cmd: ")) + cmd);
@@ -191,7 +191,7 @@ bool ESPUIclient::onWsEvent(const AwsEventType type, void *arg, const uint8_t *d
 				else
 				{
 					Serial.println(F(
-						"ERROR:ESPUIclient::OnWsEvent:WS_EVT_DATA:uifragmentok:ProcessAck:Fragment Header is missing"));
+						"ERROR:esp_ui_client::OnWsEvent:WS_EVT_DATA:uifragmentok:ProcessAck:Fragment Header is missing"));
 				}
 				break;
 			}
@@ -199,10 +199,10 @@ bool ESPUIclient::onWsEvent(const AwsEventType type, void *arg, const uint8_t *d
 			if (cmd.equals(F("uiuok")))
 				break;
 
-			Control *control = ESPUI.getControl(id);
+			Control *control = ui.getControl(id);
 			if (nullptr == control)
 				break;
-			control->onWsEvent(cmd, value);
+			control->onWsEvent(cmd, value, ui);
 			// notify other clients of change
 			Response = true;
 			break;
@@ -220,16 +220,16 @@ Prepare a chunk of elements as a single JSON string. If the allowed number of el
 number this will represent the entire UI. More likely, it will represent a small section of the UI to be sent. The
 client will acknowledge receipt by requesting the next chunk.
  */
-uint32_t ESPUIclient::prepareJSONChunk(uint16_t startindex, JsonDocument &rootDoc, const bool InUpdateMode,
-                                       const String &value) const
+uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &rootDoc, const bool InUpdateMode,
+                                         const String &value) const
 {
-	xSemaphoreTake(ESPUI.ControlsSemaphore, portMAX_DELAY);
+	xSemaphoreTake(ui.ControlsSemaphore, portMAX_DELAY);
 
-	const uint32_t MaxMarshaledJsonSize = !InUpdateMode ? ESPUI.jsonInitialDocumentSize : ESPUI.jsonUpdateDocumentSize;
+	const uint32_t MaxMarshaledJsonSize = !InUpdateMode ? ui.jsonInitialDocumentSize : ui.jsonUpdateDocumentSize;
 	uint32_t EstimatedUsedMarshaledJsonSize = 0;
 
 	// Follow the list until control points to the startindex node
-	const Control *control = ESPUI.controls;
+	const Control *control = ui.controls;
 	uint32_t currentIndex = 0;
 	uint32_t DataOffset = 0;
 	const JsonArray items = rootDoc[F("controls")];
@@ -248,14 +248,14 @@ uint32_t ESPUIclient::prepareJSONChunk(uint16_t startindex, JsonDocument &rootDo
 		{
 			Serial.println(
 				F("ERROR:prepareJSONChunk:Fragmentation:Could not extract json from the fragment request"));
-			xSemaphoreGive(ESPUI.ControlsSemaphore);
+			xSemaphoreGive(ui.ControlsSemaphore);
 			return 0;
 		}
 
 		if (!FragmentRequest["id"].is<String>())
 		{
 			Serial.println(F("ERROR:prepareJSONChunk:Fragmentation:Request does not contain a control ID"));
-			xSemaphoreGive(ESPUI.ControlsSemaphore);
+			xSemaphoreGive(ui.ControlsSemaphore);
 			return 0;
 		}
 		const auto ControlId = FragmentRequest[F("id")].as<uint16_t>();
@@ -263,17 +263,17 @@ uint32_t ESPUIclient::prepareJSONChunk(uint16_t startindex, JsonDocument &rootDo
 		if (!FragmentRequest["offset"].is<String>())
 		{
 			Serial.println(F("ERROR:prepareJSONChunk:Fragmentation:Request does not contain a starting offset"));
-			xSemaphoreGive(ESPUI.ControlsSemaphore);
+			xSemaphoreGive(ui.ControlsSemaphore);
 			return 0;
 		}
 		DataOffset = FragmentRequest[F("offset")].as<uint32_t>();
-		control = ESPUI.getControlNoLock(ControlId);
+		control = ui.getControlNoLock(ControlId);
 		if (nullptr == control)
 		{
 			Serial.println(
 				String(F("ERROR:prepareJSONChunk:Fragmentation:Requested control: ")) + String(ControlId) + F(
 					" does not exist"));
-			xSemaphoreGive(ESPUI.ControlsSemaphore);
+			xSemaphoreGive(ui.ControlsSemaphore);
 			return 0;
 		}
 
@@ -307,7 +307,7 @@ uint32_t ESPUIclient::prepareJSONChunk(uint16_t startindex, JsonDocument &rootDo
 	// any controls left to be processed?
 	if (nullptr == control)
 	{
-		xSemaphoreGive(ESPUI.ControlsSemaphore);
+		xSemaphoreGive(ui.ControlsSemaphore);
 		return 0;
 	}
 
@@ -345,12 +345,12 @@ uint32_t ESPUIclient::prepareJSONChunk(uint16_t startindex, JsonDocument &rootDo
 		                                                         InUpdateMode,
 		                                                         DataOffset,
 		                                                         RemainingSpace,
-		                                                         SpaceUsedByMarshaledControl);
+		                                                         SpaceUsedByMarshaledControl, ui);
 		EstimatedUsedMarshaledJsonSize += SpaceUsedByMarshaledControl;
 
 		// did the control get added to the doc?
 		if (0 == SpaceUsedByMarshaledControl ||
-		    (ESPUI.jsonChunkNumberMax > 0 && elementCount % ESPUI.jsonChunkNumberMax == 0))
+		    (ui.jsonChunkNumberMax > 0 && elementCount % ui.jsonChunkNumberMax == 0))
 		{
 			if (1 == elementCount)
 			{
@@ -372,7 +372,7 @@ uint32_t ESPUIclient::prepareJSONChunk(uint16_t startindex, JsonDocument &rootDo
 			control = control->next;
 	} // end while (control != nullptr)
 
-	xSemaphoreGive(ESPUI.ControlsSemaphore);
+	xSemaphoreGive(ui.ControlsSemaphore);
 	return elementCount;
 }
 
@@ -396,24 +396,24 @@ CLIENT: controls.js:handleEvent()
 etc.
     Returns true if all controls have been sent (aka: Done)
 */
-bool ESPUIclient::SendControlsToClient(const uint16_t start_idx, const ClientUpdateType_t TransferMode,
-                                       const String &FragmentRequest)
+bool esp_ui_client::SendControlsToClient(const uint16_t start_idx, const ClientUpdateType_t TransferMode,
+                                         const String &FragmentRequest)
 {
 	if (!CanSend())
 		return false;
-	if (start_idx >= ESPUI.controlCount && emptyString.equals(FragmentRequest))
+	if (start_idx >= ui.controlCount && emptyString.equals(FragmentRequest))
 		return true;
 
-	AllocateJsonDocument(document, ESPUI.jsonInitialDocumentSize);
+	AllocateJsonDocument(document, ui.jsonInitialDocumentSize);
 	FillInHeader(document);
 	document[F("startindex")] = start_idx;
-	document[F("totalcontrols")] = 0xFFFF; // ESPUI.controlCount;
+	document[F("totalcontrols")] = 0xFFFF; // ui.controlCount;
 
 	if (0 == start_idx)
 	{
 		document["type"] = (RebuildNeeded == TransferMode) ? UI_INITIAL_GUI : UI_EXTEND_GUI;
 		CurrentSyncID = NextSyncID;
-		NextSyncID = ESPUI.GetNextControlChangeId();
+		NextSyncID = ui.GetNextControlChangeId();
 	}
 	if (prepareJSONChunk(start_idx, document, UpdateNeeded == TransferMode, FragmentRequest))
 	{
@@ -423,7 +423,7 @@ bool ESPUIclient::SendControlsToClient(const uint16_t start_idx, const ClientUpd
 	return true;
 }
 
-bool ESPUIclient::SendJsonDocToWebSocket(const JsonDocument &document) const
+bool esp_ui_client::SendJsonDocToWebSocket(const JsonDocument &document) const
 {
 	if (!CanSend())
 		return false;
@@ -434,7 +434,7 @@ bool ESPUIclient::SendJsonDocToWebSocket(const JsonDocument &document) const
 	return true;
 }
 
-void ESPUIclient::SetState(const ClientUpdateType_t value)
+void esp_ui_client::SetState(const ClientUpdateType_t value)
 {
 	// only a higher priority state request can replace the current state request
 	if (value > ClientUpdateType)

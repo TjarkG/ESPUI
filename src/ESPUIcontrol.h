@@ -4,6 +4,8 @@
 #include <ArduinoJson.h>
 #include <functional>
 
+class ESPUIClass;
+
 enum class ControlType : uint8_t
 {
 	// fixed Controls
@@ -40,13 +42,13 @@ enum class ControlType : uint8_t
 enum class ControlColor : uint8_t
 {
 	Turquoise,
-	Emerald,
-	Peterriver,
-	Wetasphalt,
-	Sunflower,
-	Carrot,
-	Alizarin,
-	Dark,
+	Green,
+	Blue,
+	Gray,
+	Yellow,
+	Orange,
+	Red,
+	Black,
 	None = 0xFF
 };
 
@@ -86,13 +88,13 @@ public:
 	bool HasCallback() const { return nullptr != callback; }
 
 	bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
-	                    uint32_t &EstimatedUsedSpace) const;
+	                    uint32_t &EstimatedUsedSpace,const ESPUIClass &ui) const;
 
 	void MarshalErrorMessage(const JsonObject &item) const;
 
 	void DeleteControl();
 
-	void onWsEvent(const String &cmd, const String &data);
+	void onWsEvent(const String &cmd, const String &data,ESPUIClass &ui);
 
 	bool ToBeDeleted() const { return toDelete; }
 
@@ -113,33 +115,3 @@ private:
 	// Marshaled Control overhead length
 #define JsonMarshaledOverhead 64
 };
-
-#define UI_TITLE            ControlType::Title
-#define UI_LABEL            ControlType::Label
-#define UI_BUTTON           ControlType::Button
-#define UI_SWITCHER         ControlType::Switcher
-#define UI_PAD              ControlType::Pad
-#define UI_CPAD             ControlType::Cpad
-#define UI_SLIDER           ControlType::Slider
-#define UI_NUMBER           ControlType::Number
-#define UI_TEXT_INPUT       ControlType::Text
-#define UI_GRAPH            ControlType::Graph
-#define UI_ADD_GRAPH_POINT  ControlType::GraphPoint
-
-#define UPDATE_LABEL        ControlType::UpdateLabel
-#define UPDATE_SWITCHER     ControlType::UpdateSwitcher
-#define UPDATE_SLIDER       ControlType::UpdateSlider
-#define UPDATE_NUMBER       ControlType::UpdateNumber
-#define UPDATE_TEXT_INPUT   ControlType::UpdateText
-#define CLEAR_GRAPH         ControlType::ClearGraph
-
-// Colors
-#define COLOR_TURQUOISE     ControlColor::Turquoise
-#define COLOR_EMERALD       ControlColor::Emerald
-#define COLOR_PETERRIVER    ControlColor::Peterriver
-#define COLOR_WETASPHALT    ControlColor::Wetasphalt
-#define COLOR_SUNFLOWER     ControlColor::Sunflower
-#define COLOR_CARROT        ControlColor::Carrot
-#define COLOR_ALIZARIN      ControlColor::Alizarin
-#define COLOR_DARK          ControlColor::Dark
-#define COLOR_NONE          ControlColor::None

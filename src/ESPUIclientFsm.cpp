@@ -11,36 +11,36 @@ bool fsm_EspuiClient_state_Idle::NotifyClient()
 {
 	bool Response = false;
 
-	const ESPUIclient::ClientUpdateType_t TypeToProcess = Parent->ClientUpdateType;
+	const esp_ui_client::ClientUpdateType_t TypeToProcess = Parent->ClientUpdateType;
 	// Clear the type so that we capture any changes in type that happen
 	// while we are processing the current request.
-	Parent->ClientUpdateType = ESPUIclient::ClientUpdateType_t::Synchronized;
+	Parent->ClientUpdateType = esp_ui_client::ClientUpdateType_t::Synchronized;
 
 	// Start processing the current request.
 	switch (TypeToProcess)
 	{
-		case ESPUIclient::ClientUpdateType_t::Synchronized:
+		case esp_ui_client::ClientUpdateType_t::Synchronized:
 		{
 			// Parent->fsm_EspuiClient_state_Idle_imp.Init();
-			Response = true; // Parent->SendClientNotification(ESPUIclient::ClientUpdateType_t::UpdateNeeded);
+			Response = true; // Parent->SendClientNotification(esp_ui_client::ClientUpdateType_t::UpdateNeeded);
 			break;
 		}
-		case ESPUIclient::ClientUpdateType_t::UpdateNeeded:
+		case esp_ui_client::ClientUpdateType_t::UpdateNeeded:
 		{
 			Parent->fsm_EspuiClient_state_SendingUpdate_imp.Init();
-			Response = Parent->SendClientNotification(ESPUIclient::ClientUpdateType_t::UpdateNeeded);
+			Response = Parent->SendClientNotification(esp_ui_client::ClientUpdateType_t::UpdateNeeded);
 			break;
 		}
-		case ESPUIclient::ClientUpdateType_t::RebuildNeeded:
+		case esp_ui_client::ClientUpdateType_t::RebuildNeeded:
 		{
 			Parent->fsm_EspuiClient_state_Rebuilding_imp.Init();
-			Response = Parent->SendClientNotification(ESPUIclient::ClientUpdateType_t::RebuildNeeded);
+			Response = Parent->SendClientNotification(esp_ui_client::ClientUpdateType_t::RebuildNeeded);
 			break;
 		}
-		case ESPUIclient::ClientUpdateType_t::ReloadNeeded:
+		case esp_ui_client::ClientUpdateType_t::ReloadNeeded:
 		{
 			Parent->fsm_EspuiClient_state_Reloading_imp.Init();
-			Response = Parent->SendClientNotification(ESPUIclient::ClientUpdateType_t::ReloadNeeded);
+			Response = Parent->SendClientNotification(esp_ui_client::ClientUpdateType_t::ReloadNeeded);
 			break;
 		}
 	}
@@ -51,13 +51,13 @@ void fsm_EspuiClient_state_Idle::ProcessAck(const uint16_t ControlIndex, const S
 {
 	if (!emptyString.equals(FragmentRequestString))
 	{
-		Parent->SendControlsToClient(ControlIndex, ESPUIclient::ClientUpdateType_t::UpdateNeeded,
+		Parent->SendControlsToClient(ControlIndex, esp_ui_client::ClientUpdateType_t::UpdateNeeded,
 		                             FragmentRequestString);
 	} else
 	{
 		// This is an unexpected request for control data from the browser
 		// treat it as if it was a rebuild operation
-		Parent->NotifyClient(ESPUIclient::ClientUpdateType_t::RebuildNeeded);
+		Parent->NotifyClient(esp_ui_client::ClientUpdateType_t::RebuildNeeded);
 	}
 }
 
@@ -68,7 +68,7 @@ bool fsm_EspuiClient_state_SendingUpdate::NotifyClient()
 
 void fsm_EspuiClient_state_SendingUpdate::ProcessAck(const uint16_t ControlIndex, const String FragmentRequest)
 {
-	if (Parent->SendControlsToClient(ControlIndex, ESPUIclient::ClientUpdateType_t::UpdateNeeded, FragmentRequest))
+	if (Parent->SendControlsToClient(ControlIndex, esp_ui_client::ClientUpdateType_t::UpdateNeeded, FragmentRequest))
 	{
 		// No more data to send. Go back to idle or start next request
 		Parent->fsm_EspuiClient_state_Idle_imp.Init();
@@ -90,7 +90,7 @@ bool fsm_EspuiClient_state_Rebuilding::NotifyClient()
 
 void fsm_EspuiClient_state_Rebuilding::ProcessAck(const uint16_t ControlIndex, const String FragmentRequest)
 {
-	if (Parent->SendControlsToClient(ControlIndex, ESPUIclient::ClientUpdateType_t::RebuildNeeded, FragmentRequest))
+	if (Parent->SendControlsToClient(ControlIndex, esp_ui_client::ClientUpdateType_t::RebuildNeeded, FragmentRequest))
 	{
 		// No more data to send. Go back to idle or start next request
 		Parent->fsm_EspuiClient_state_Idle_imp.Init();
@@ -109,7 +109,7 @@ void fsm_EspuiClient_state_Reloading::ProcessAck(const uint16_t ControlIndex, co
 {
 	if (!emptyString.equals(FragmentRequestString))
 	{
-		Parent->SendControlsToClient(ControlIndex, ESPUIclient::ClientUpdateType_t::UpdateNeeded,
+		Parent->SendControlsToClient(ControlIndex, esp_ui_client::ClientUpdateType_t::UpdateNeeded,
 		                             FragmentRequestString);
 	}
 }
