@@ -199,7 +199,7 @@ void YourClassName::myButtonCallback(Control* sender, int eventname)
 }
 ```
 <br>
-<br>
+
 #### Button
 
 ![Buttons](docs/ui_button.png)

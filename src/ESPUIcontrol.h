@@ -6,100 +6,112 @@
 
 enum ControlType : uint8_t
 {
-    // fixed Controls
-    Title = 0,
+	// fixed Controls
+	Title = 0,
 
-    // updatable Controls
-    Pad,
-    PadWithCenter,
-    Button,
-    Label,
-    Switcher,
-    Slider,
-    Number,
-    Text,
-    Graph,
-    GraphPoint,
-    Tab,
-    Select,
-    Option,
-    Min,
-    Max,
-    Step,
-    Gauge,
-    Accel,
-    Separator,
-    Time,
-    FileDisplay,
+	// updatable Controls
+	Pad,
+	PadWithCenter,
+	Button,
+	Label,
+	Switcher,
+	Slider,
+	Number,
+	Text,
+	Graph,
+	GraphPoint,
+	Tab,
+	Select,
+	Option,
+	Min,
+	Max,
+	Step,
+	Gauge,
+	Accel,
+	Separator,
+	Time,
+	FileDisplay,
 
-    Fragment = 98,
-    Password = 99,
-    UpdateOffset = 100,
+	Fragment = 98,
+	Password = 99,
+	UpdateOffset = 100,
 };
 
 enum ControlColor : uint8_t
 {
-    Turquoise,
-    Emerald,
-    Peterriver,
-    Wetasphalt,
-    Sunflower,
-    Carrot,
-    Alizarin,
-    Dark,
-    None = 0xFF
+	Turquoise,
+	Emerald,
+	Peterriver,
+	Wetasphalt,
+	Sunflower,
+	Carrot,
+	Alizarin,
+	Dark,
+	None = 0xFF
 };
 
 class Control
 {
 public:
-    ControlType type;
-    uint16_t id; // just mirroring the id here for practical reasons
-    const char* label;
-    std::function<void(Control*, int)> callback;
-    String value;
-    ControlColor color;
-    bool visible;
-    bool wide;
-    bool vertical;
-    bool enabled;
-    uint16_t parentControl;
-    String panelStyle;
-    String elementStyle;
-    String inputType;
-    Control* next;
+	ControlType type;
+	uint16_t id; // just mirroring the id here for practical reasons
+	const char *label;
+	std::function<void(Control *, int)> callback;
+	String value;
+	ControlColor color;
+	bool visible;
+	bool wide;
+	bool vertical;
+	bool enabled;
+	uint16_t parentControl;
+	String panelStyle;
+	String elementStyle;
+	String inputType;
+	Control *next;
 
-    static constexpr uint16_t noParent = 0xffff;
+	static constexpr uint16_t noParent = 0xffff;
 
-    Control(ControlType type, 
-            const char* label, 
-            std::function<void(Control*, int)> callback,
-            const String& value, 
-            ControlColor color, 
-            bool visible, 
-            uint16_t parentControl);
+	Control(ControlType type,
+	        const char *label,
+	        std::function<void(Control *, int)> callback,
+	        const String &value,
+	        ControlColor color,
+	        bool visible,
+	        uint16_t parentControl);
 
-    Control(const Control& Control);
+	Control(const Control &Control);
 
-    void SendCallback(int type);
-    bool HasCallback() { return (nullptr != callback); }
-    bool MarshalControl(ArduinoJson::JsonObject& item, bool refresh, uint32_t DataOffset, uint32_t MaxLength, uint32_t & EstimmatedUsedSpace);
-    void MarshalErrorMessage(ArduinoJson::JsonObject& item);
-    void DeleteControl();
-    void onWsEvent(String& cmd, String& data);
-    inline bool ToBeDeleted() { return _ToBeDeleted; }
-    inline bool NeedsSync(uint32_t lastControlChangeID) {return (false == _ToBeDeleted) && (lastControlChangeID < ControlChangeID);}
-    void    SetControlChangedId(uint32_t value) {ControlChangeID = value;}
+	void SendCallback(int type);
+
+	bool HasCallback() { return (nullptr != callback); }
+
+	bool MarshalControl(ArduinoJson::JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
+	                    uint32_t &EstimmatedUsedSpace);
+
+	void MarshalErrorMessage(ArduinoJson::JsonObject &item);
+
+	void DeleteControl();
+
+	void onWsEvent(String &cmd, String &data);
+
+	inline bool ToBeDeleted() { return _ToBeDeleted; }
+
+	inline bool NeedsSync(uint32_t lastControlChangeID)
+	{
+		return (false == _ToBeDeleted) && (lastControlChangeID < ControlChangeID);
+	}
+
+	void SetControlChangedId(uint32_t value) { ControlChangeID = value; }
 
 private:
-    bool _ToBeDeleted = false;
-    uint32_t ControlChangeID = 0;
-    String OldValue = emptyString;
+	bool _ToBeDeleted = false;
+	uint32_t ControlChangeID = 0;
+	String OldValue = emptyString;
 
-    // multiplier for converting a typical controller label or value to a Json object
-    #define JsonMarshalingRatio 3
-    // Marshaed Control overhead length
-    #define JsonMarshaledOverhead 64
+	// multiplier for converting a typical controller label or value to a Json object
+#define JsonMarshalingRatio 3
+	// Marshaed Control overhead length
+#define JsonMarshaledOverhead 64
 };
 
 #define UI_TITLE            ControlType::Title
