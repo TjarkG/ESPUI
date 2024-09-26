@@ -65,11 +65,11 @@ public:
 	bool wide {false};
 	bool vertical {false};
 	bool enabled {true};
-	uint16_t parentControl;
+	std::shared_ptr<Control>  parentControl;
 	String panelStyle;
 	String elementStyle;
 	String inputType;
-	Control *next;
+	std::shared_ptr<Control> next {};
 
 	static constexpr uint16_t noParent = 0xffff;
 
@@ -79,7 +79,7 @@ public:
 	        String value,
 	        ControlColor color,
 	        bool visible,
-	        uint16_t parentControl);
+	        const std::shared_ptr<Control>& parentControl);
 
 	Control(const Control &Control);
 

@@ -61,7 +61,7 @@ protected:
 
 	// Store UI Title and Header Name
 	const char *ui_title = "ESPUI";
-	Control *controls = nullptr;
+	std::shared_ptr<Control> controls {};
 
 	AsyncWebServer *server {};
 	AsyncWebSocket *ws {};
@@ -75,9 +75,6 @@ protected:
 	Verbosity verbosity = Verbosity::Quiet;
 
 	fs::LittleFSFS &EspuiLittleFS = LittleFS;
-
-	uint16_t addControl(
-		Control *control);
 
 	void NotifyClients(esp_ui_client::ClientUpdateType_t newState) const;
 
@@ -115,105 +112,64 @@ public:
 
 	void writeFile(const char *path, const char *data) const;
 
-	uint16_t addControl(ControlType type, const char *label, const String &value = "",
-	                    ControlColor color = ControlColor::Turquoise,
-	                    uint16_t parentControl = Control::noParent);
+	std::shared_ptr<Control> addControl(ControlType type, const char *label, const String &value = "",
+	                                    ControlColor color = ControlColor::Turquoise,
+	                                    const std::shared_ptr<Control>& parentControl = nullptr);
 
-	uint16_t addControl(ControlType type, const char *label, const String &value, ControlColor color,
-	                    uint16_t parentControl, const std::function<void(Control *, int)> &callback);
+	std::shared_ptr<Control> addControl(ControlType type, const char *label, const String &value, ControlColor color,
+	                                    const std::shared_ptr<Control>& parentControl,
+	                                    const std::function<void(Control *, int)> &callback);
 
-	bool removeControl(uint16_t id, bool force_rebuild_ui = false);
+	void removeControl(Control &control, bool force_rebuild_ui = false);
 
-	// create Elements
-	// Create Event Button
-	uint16_t button(const char *label, const std::function<void(Control *, int)> &callback, ControlColor color,
-	                const String &value = "");
+	std::shared_ptr<Control> getControl(uint16_t id) const;
 
-	uint16_t switcher(const char *label, const std::function<void(Control *, int)> &callback, ControlColor color,
-	                  bool startState = false); // Create Toggle Button
-	uint16_t pad(const char *label, const std::function<void(Control *, int)> &callback, ControlColor color);
-
-	// Create Pad Control
-	uint16_t padWithCenter(const char *label, const std::function<void(Control *, int)> &callback, ControlColor color);
-
-	// Create Pad Control with Centerbutton
-	uint16_t slider(const char *label, const std::function<void(Control *, int)> &callback, ControlColor color,
-	                int value,
-	                int min = 0, int max = 100); // Create Slider Control
-	uint16_t number(const char *label, const std::function<void(Control *, int)> &callback, ControlColor color,
-	                int value,
-	                int min = 0, int max = 100); // Create a Number Input Control
-	uint16_t text(const char *label, const std::function<void(Control *, int)> &callback, ControlColor color,
-	              const String &value = ""); // Create a Text Input Control
-
-	// Output only
-	uint16_t label(const char *label, ControlColor color,
-	               const String &value = ""); // Create Label
-	uint16_t graph(const char *label, ControlColor color); // Create Graph display
-	uint16_t gauge(const char *label, ControlColor color, int value, int min = 0,
-	               int max = 100); // Create Gauge display
-	void separator(const char *label); //Create separator
-	uint16_t fileDisplay(const char *label, ControlColor color, const String &filename);
-
-	// Input only
-	uint16_t accelerometer(const char *label, const std::function<void(Control *, int)> &callback, ControlColor color);
+	std::shared_ptr<Control> getControlNoLock(uint16_t id) const;
 
 	// Update Elements
+	void updateControlValue(Control &control, const String &value, int clientId = -1);
 
-	Control *getControl(uint16_t id) const;
+	void updateControlLabel(Control &control, const char *value, int clientId = -1);
 
-	Control *getControlNoLock(uint16_t id) const;
+	void updateControl(Control &control, int clientId = -1);
 
-	// Update Elements
-	void updateControlValue(uint16_t id, const String &value, int clientId = -1);
+	void print(Control &control, const String &value);
 
-	void updateControlValue(Control *control, const String &value, int clientId = -1);
+	void updateLabel(Control &control, const String &value);
 
-	void updateControlLabel(uint16_t control, const char *value, int clientId = -1);
+	void updateButton(Control &control, const String &value);
 
-	void updateControlLabel(Control *control, const char *value, int clientId = -1);
+	void updateSwitcher(Control &control, bool nValue, int clientId = -1);
 
-	void updateControl(uint16_t id, int clientId = -1);
+	void updateSlider(Control &control, int nValue, int clientId = -1);
 
-	void updateControl(Control *control, int clientId = -1);
+	void updateNumber(Control &control, int nValue, int clientId = -1);
 
-	void print(uint16_t id, const String &value);
+	void updateText(Control &control, const String &nValue, int clientId = -1);
 
-	void updateLabel(uint16_t id, const String &value);
+	void updateSelect(Control &control, const String &nValue, int clientId = -1);
 
-	void updateButton(uint16_t id, const String &value);
+	void updateGauge(Control &control, int number, int clientId);
 
-	void updateSwitcher(uint16_t id, bool nValue, int clientId = -1);
+	void updateTime(Control &control, int clientId = -1);
 
-	void updateSlider(uint16_t id, int nValue, int clientId = -1);
+	void clearGraph(const Control &control, int clientId = -1);
 
-	void updateNumber(uint16_t id, int nValue, int clientId = -1);
+	void addGraphPoint(const Control &control, int nValue, int clientId = -1);
 
-	void updateText(uint16_t id, const String &nValue, int clientId = -1);
+	void setPanelStyle(Control &control, const String &style, int clientId = -1);
 
-	void updateSelect(uint16_t id, const String &nValue, int clientId = -1);
+	void setElementStyle(Control &control, const String &style, int clientId = -1);
 
-	void updateGauge(uint16_t id, int number, int clientId);
+	void setInputType(Control &control, const String &type, int clientId = -1);
 
-	void updateTime(uint16_t id, int clientId = -1);
+	void setPanelWide(Control &control, bool wide, int clientId = -1);
 
-	void clearGraph(uint16_t id, int clientId = -1);
+	void setVertical(Control &control, bool vert = true, int clientId = -1);
 
-	void addGraphPoint(uint16_t id, int nValue, int clientId = -1);
+	void setEnabled(Control &control, bool enabled = true, int clientId = -1);
 
-	void setPanelStyle(uint16_t id, const String &style, int clientId = -1);
-
-	void setElementStyle(uint16_t id, const String &style, int clientId = -1);
-
-	void setInputType(uint16_t id, const String &type, int clientId = -1);
-
-	void setPanelWide(uint16_t id, bool wide) const;
-
-	void setVertical(uint16_t id, bool vert = true) const;
-
-	void setEnabled(uint16_t id, bool enabled = true, int clientId = -1);
-
-	void updateVisibility(uint16_t id, bool visibility, int clientId = -1);
+	void updateVisibility(Control &control, bool visibility, int clientId = -1);
 
 	void jsonReload() const;
 
@@ -221,81 +177,6 @@ public:
 
 
 	uint32_t GetNextControlChangeId();
-
-	uint16_t button(const char *label, const std::function<void(Control *, int, void *)> &callback,
-	                const ControlColor color,
-	                const String &value, void *userData)
-	{
-		return button(
-			label, [callback, userData](Control *sender, const int type) { callback(sender, type, userData); },
-			color, value);
-	}
-
-	uint16_t switcher(const char *label, const std::function<void(Control *, int, void *)> &callback,
-	                  const ControlColor color,
-	                  const bool startState, void *userData)
-	{
-		return switcher(label, [callback, userData](Control *sender, const int type)
-		                {
-			                callback(sender, type, userData);
-		                },
-		                color, startState);
-	}
-
-	uint16_t pad(const char *label, const std::function<void(Control *, int, void *)> &callback,
-	             const ControlColor color,
-	             void *userData)
-	{
-		return pad(label, [callback, userData](Control *sender, const int type) { callback(sender, type, userData); },
-		           color);
-	}
-
-	uint16_t padWithCenter(const char *label, const std::function<void(Control *, int, void *)> &callback,
-	                       const ControlColor color,
-	                       void *userData)
-	{
-		return padWithCenter(label, [callback, userData](Control *sender, const int type)
-		{
-			callback(sender, type, userData);
-		}, color);
-	}
-
-	uint16_t slider(const char *label, const std::function<void(Control *, int, void *)> &callback,
-	                const ControlColor color,
-	                const int value, const int min, const int max, void *userData)
-	{
-		return slider(
-			label, [callback, userData](Control *sender, const int type) { callback(sender, type, userData); },
-			color, value, min, max);
-	}
-
-	uint16_t number(const char *label, const std::function<void(Control *, int, void *)> &callback,
-	                const ControlColor color,
-	                const int value, const int min, const int max, void *userData)
-	{
-		return number(
-			label, [callback, userData](Control *sender, const int type) { callback(sender, type, userData); },
-			color, value, min, max);
-	}
-
-	uint16_t text(const char *label, const std::function<void(Control *, int, void *)> &callback,
-	              const ControlColor color,
-	              const String &value, void *userData)
-	{
-		return text(label, [callback, userData](Control *sender, const int type) { callback(sender, type, userData); },
-		            color,
-		            value);
-	}
-
-	uint16_t accelerometer(const char *label, const std::function<void(Control *, int, void *)> &callback,
-	                       const ControlColor color,
-	                       void *userData)
-	{
-		return accelerometer(label, [callback, userData](Control *sender, const int type)
-		{
-			callback(sender, type, userData);
-		}, color);
-	}
 
 	AsyncWebServer *WebServer() const { return server; }
 

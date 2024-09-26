@@ -169,7 +169,7 @@ bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t 
 			if (cmd.equals(F("uiuok")))
 				break;
 
-			Control *control = ui.getControl(id);
+			const auto control = ui.getControl(id);
 			if (nullptr == control)
 				break;
 			control->onWsEvent(cmd, value, ui);
@@ -199,7 +199,7 @@ uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &root
 	uint32_t EstimatedUsedMarshaledJsonSize = 0;
 
 	// Follow the list until control points to the startindex node
-	const Control *control = ui.controls;
+	std::shared_ptr<Control> control = ui.controls;
 	uint32_t currentIndex = 0;
 	uint32_t DataOffset = 0;
 	const JsonArray items = rootDoc[F("controls")];

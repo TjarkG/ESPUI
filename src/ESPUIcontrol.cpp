@@ -6,17 +6,14 @@ static uint16_t idCounter = 0;
 static const String ControlError = "*** ESPUI ERROR: Could not transfer control ***";
 
 Control::Control(ControlType type, const char *label, std::function<void(Control *, int)> callback,
-                 String value, ControlColor color, bool visible, uint16_t parentControl) :
+                 String value, ControlColor color, bool visible, const std::shared_ptr<Control> &parentControl) :
 	type(type),
 	label(label),
 	callback(std::move(callback)),
 	value(std::move(value)),
 	color(color),
-	visible(visible),
-	wide(false),
-	vertical(false),
-	enabled(true),
 	parentControl(parentControl),
+	visible(visible),
 	next(nullptr)
 {
 	id = ++idCounter;
@@ -129,20 +126,19 @@ bool Control::MarshalControl(const JsonObject &_item,
 	if (!inputType.isEmpty()) { item[F("inputType")] = inputType; }
 	if (wide == true) { item[F("wide")] = true; }
 	if (vertical == true) { item[F("vertical")] = true; }
-	if (parentControl != noParent)
+	if (parentControl)
 	{
-		item[F("parentControl")] = String(parentControl);
+		item[F("parentControl")] = String(parentControl->id);
 	}
 
 	// special case for selects: to preselect an option, you have to add
 	// "selected" to <option>
 	if (ControlType::Option == type)
 	{
-		const Control *ParentControl = ui.getControlNoLock(parentControl);
-		if (nullptr == ParentControl)
+		if (!parentControl)
 		{
 			item[F("selected")] = emptyString;
-		} else if (ParentControl->value == value)
+		} else if (parentControl->value == value)
 		{
 			item[F("selected")] = F("selected");
 		} else
@@ -164,13 +160,13 @@ void Control::MarshalErrorMessage(const JsonObject &item) const
 	item[F("color")] = static_cast<int>(ControlColor::Orange);
 	item[F("enabled")] = true;
 
-	if (parentControl != noParent)
+	if (parentControl)
 	{
-		item[F("parentControl")] = String(parentControl);
+		item[F("parentControl")] = String(parentControl->id);
 	}
 }
 
-void Control::onWsEvent(const String &cmd, const String &data,ESPUIClass &ui)
+void Control::onWsEvent(const String &cmd, const String &data, ESPUIClass &ui)
 {
 	SetControlChangedId(ui.GetNextControlChangeId());
 	if (!HasCallback())
