@@ -1,14 +1,16 @@
+#include <utility>
+
 #include "ESPUI.h"
 
 static uint16_t idCounter = 0;
 static const String ControlError = "*** ESPUI ERROR: Could not transfer control ***";
 
 Control::Control(ControlType type, const char *label, std::function<void(Control *, int)> callback,
-                 const String &value, ControlColor color, bool visible, uint16_t parentControl) :
+                 String value, ControlColor color, bool visible, uint16_t parentControl) :
 	type(type),
 	label(label),
-	callback(callback),
-	value(value),
+	callback(std::move(callback)),
+	value(std::move(value)),
 	color(color),
 	visible(visible),
 	wide(false),
@@ -33,7 +35,7 @@ Control::Control(const Control &Control) :
 	next(Control.next),
 	ControlChangeID(Control.ControlChangeID) {}
 
-void Control::SendCallback(int type)
+void Control::SendCallback(const int type)
 {
 	if (callback)
 	{
@@ -43,15 +45,15 @@ void Control::SendCallback(int type)
 
 void Control::DeleteControl()
 {
-	_ToBeDeleted = true;
+	toDelete = true;
 	callback = nullptr;
 }
 
-bool Control::MarshalControl(JsonObject &_item,
-                             bool refresh,
-                             uint32_t StartingOffset,
-                             uint32_t AvailMarshaledLength,
-                             uint32_t &EstimatedMarshaledLength)
+bool Control::MarshalControl(const JsonObject &_item,
+                             const bool refresh,
+                             const uint32_t StartingOffset,
+                             const uint32_t AvailMarshaledLength,
+                             uint32_t &EstimatedMarshaledLength) const
 {
 	// this code assumes MaxMarshaledLength > JsonMarshalingRatio
 	// Serial.println(String("MarshalControl:           StartingOffset: ") + String(StartingOffset));
@@ -60,14 +62,14 @@ bool Control::MarshalControl(JsonObject &_item,
 
 	bool ControlIsFragmented = false;
 	// create a new item in the response document
-	JsonObject &item = _item;
+	const JsonObject &item = _item;
 
 	// how much space do we expect to use?
-	uint32_t ValueMarshaledLength = (value.length() - StartingOffset) * JsonMarshalingRatio;
-	uint32_t LabelMarshaledLength = strlen(label) * JsonMarshalingRatio;
-	uint32_t MinimumMarshaledLength = LabelMarshaledLength + JsonMarshaledOverhead;
-	uint32_t MaximumMarshaledLength = ValueMarshaledLength + MinimumMarshaledLength;
-	uint32_t SpaceForMarshaledValue = AvailMarshaledLength - MinimumMarshaledLength;
+	//const uint32_t ValueMarshaledLength = (value.length() - StartingOffset) * JsonMarshalingRatio;
+	const uint32_t LabelMarshaledLength = strlen(label) * JsonMarshalingRatio;
+	const uint32_t MinimumMarshaledLength = LabelMarshaledLength + JsonMarshaledOverhead;
+	//uint32_t MaximumMarshaledLength = ValueMarshaledLength + MinimumMarshaledLength;
+	const uint32_t SpaceForMarshaledValue = AvailMarshaledLength - MinimumMarshaledLength;
 	// Serial.println(String("MarshalControl:           value.length(): ") + String(value.length()));
 	// Serial.println(String("MarshalControl:     ValueMarshaledLength: ") + String(ValueMarshaledLength));
 	// Serial.println(String("MarshalControl:     LabelMarshaledLength: ") + String(LabelMarshaledLength));
@@ -83,16 +85,16 @@ bool Control::MarshalControl(JsonObject &_item,
 		return false;
 	}
 
-	uint32_t MaxValueLength = (SpaceForMarshaledValue / JsonMarshalingRatio);
+	const uint32_t MaxValueLength = (SpaceForMarshaledValue / JsonMarshalingRatio);
 	// Serial.println(String("MarshalControl:           MaxValueLength: ") + String(MaxValueLength));
 
-	uint32_t ValueLenToSend = min((value.length() - StartingOffset), MaxValueLength);
+	const uint32_t ValueLenToSend = min((value.length() - StartingOffset), MaxValueLength);
 	// Serial.println(String("MarshalControl:           ValueLenToSend: ") + String(ValueLenToSend));
 
-	uint32_t AdjustedMarshaledLength = (ValueLenToSend * JsonMarshalingRatio) + MinimumMarshaledLength;
+	const uint32_t AdjustedMarshaledLength = (ValueLenToSend * JsonMarshalingRatio) + MinimumMarshaledLength;
 	// Serial.println(String("MarshalControl:  AdjustedMarshaledLength: ") + String(AdjustedMarshaledLength));
 
-	bool NeedToFragment = (ValueLenToSend < value.length());
+	const bool NeedToFragment = (ValueLenToSend < value.length());
 	// Serial.println(String("MarshalControl:           NeedToFragment: ") + String(NeedToFragment));
 
 	if ((AdjustedMarshaledLength > AvailMarshaledLength) && (0 != ValueLenToSend))
@@ -124,7 +126,7 @@ bool Control::MarshalControl(JsonObject &_item,
 		ControlIsFragmented = true;
 
 		// fill in the fragment header
-		_item[F("type")] = uint32_t(ControlType::Fragment);
+		_item[F("type")] = static_cast<uint32_t>(ControlType::Fragment);
 		_item[F("id")] = id;
 
 		// Serial.println(String("MarshalControl:Final length:      ") + String(length));
@@ -139,10 +141,10 @@ bool Control::MarshalControl(JsonObject &_item,
 	ControlType TempType = (ControlType::Password == type) ? ControlType::Text : type;
 	if (refresh)
 	{
-		item[F("type")] = uint32_t(TempType) + uint32_t(ControlType::UpdateOffset);
+		item[F("type")] = static_cast<uint32_t>(TempType) + static_cast<uint32_t>(ControlType::UpdateOffset);
 	} else
 	{
-		item[F("type")] = uint32_t(TempType);
+		item[F("type")] = static_cast<uint32_t>(TempType);
 	}
 
 	item[F("label")] = label;
@@ -150,7 +152,7 @@ bool Control::MarshalControl(JsonObject &_item,
 		                   ? F("--------")
 		                   : value.substring(StartingOffset, StartingOffset + ValueLenToSend);
 	item[F("visible")] = visible;
-	item[F("color")] = (int) color;
+	item[F("color")] = static_cast<int>(color);
 	item[F("enabled")] = enabled;
 
 	if (!panelStyle.isEmpty()) { item[F("panelStyle")] = panelStyle; }
@@ -158,7 +160,7 @@ bool Control::MarshalControl(JsonObject &_item,
 	if (!inputType.isEmpty()) { item[F("inputType")] = inputType; }
 	if (wide == true) { item[F("wide")] = true; }
 	if (vertical == true) { item[F("vertical")] = true; }
-	if (parentControl != Control::noParent)
+	if (parentControl != noParent)
 	{
 		item[F("parentControl")] = String(parentControl);
 	}
@@ -167,7 +169,7 @@ bool Control::MarshalControl(JsonObject &_item,
 	// "selected" to <option>
 	if (ControlType::Option == type)
 	{
-		Control *ParentControl = ESPUI.getControlNoLock(parentControl);
+		const Control *ParentControl = ESPUI.getControlNoLock(parentControl);
 		if (nullptr == ParentControl)
 		{
 			item[F("selected")] = emptyString;
@@ -184,134 +186,129 @@ bool Control::MarshalControl(JsonObject &_item,
 	return ControlIsFragmented;
 }
 
-void Control::MarshalErrorMessage(JsonObject &item)
+void Control::MarshalErrorMessage(const JsonObject &item) const
 {
 	item[F("id")] = id;
-	item[F("type")] = uint32_t(ControlType::Label);
+	item[F("type")] = static_cast<uint32_t>(ControlType::Label);
 	item[F("label")] = ControlError.c_str();
 	item[F("value")] = ControlError;
 	item[F("visible")] = true;
-	item[F("color")] = (int) ControlColor::Carrot;
+	item[F("color")] = static_cast<int>(ControlColor::Carrot);
 	item[F("enabled")] = true;
 
-	if (parentControl != Control::noParent)
+	if (parentControl != noParent)
 	{
 		item[F("parentControl")] = String(parentControl);
 	}
 }
 
-void Control::onWsEvent(String &cmd, String &data)
+void Control::onWsEvent(const String &cmd, const String &data)
 {
-	do // once
+	// Serial.println(String(F("Control::onWsEvent")));
+	SetControlChangedId(ESPUI.GetNextControlChangeId());
+	if (!HasCallback())
 	{
-		// Serial.println(String(F("Control::onWsEvent")));
-		SetControlChangedId(ESPUI.GetNextControlChangeId());
-		if (!HasCallback())
-		{
 #if defined(DEBUG_ESPUI)
-                if (ESPUI.verbosity)
-                {
-                    Serial.println(String(F("Control::onWsEvent:No callback found for ID ")) + String(id));
-                }
+        if (ESPUI.verbosity)
+        {
+            Serial.println(String(F("Control::onWsEvent:No callback found for ID ")) + String(id));
+        }
 #endif
-			break;
-		}
+		return;
+	}
 
-		// Serial.println("Control::onWsEvent:Generating callback");
-		if (cmd.equals(F("bdown")))
-		{
-			SendCallback(B_DOWN);
-			break;
-		}
+	// Serial.println("Control::onWsEvent:Generating callback");
+	if (cmd.equals(F("bdown")))
+	{
+		SendCallback(B_DOWN);
+		return;
+	}
 
-		if (cmd.equals(F("bup")))
-		{
-			SendCallback(B_UP);
-			break;
-		}
+	if (cmd.equals(F("bup")))
+	{
+		SendCallback(B_UP);
+		return;
+	}
 
-		if (cmd.equals(F("pfdown")))
-		{
-			SendCallback(P_FOR_DOWN);
-			break;
-		}
+	if (cmd.equals(F("pfdown")))
+	{
+		SendCallback(P_FOR_DOWN);
+		return;
+	}
 
-		if (cmd.equals(F("pfup")))
-		{
-			SendCallback(P_FOR_UP);
-			break;
-		}
+	if (cmd.equals(F("pfup")))
+	{
+		SendCallback(P_FOR_UP);
+		return;
+	}
 
-		if (cmd.equals(F("pldown")))
-		{
-			SendCallback(P_LEFT_DOWN);
-			break;
-		} else if (cmd.equals(F("plup")))
-		{
-			SendCallback(P_LEFT_UP);
-		} else if (cmd.equals(F("prdown")))
-		{
-			SendCallback(P_RIGHT_DOWN);
-		} else if (cmd.equals(F("prup")))
-		{
-			SendCallback(P_RIGHT_UP);
-		} else if (cmd.equals(F("pbdown")))
-		{
-			SendCallback(P_BACK_DOWN);
-		} else if (cmd.equals(F("pbup")))
-		{
-			SendCallback(P_BACK_UP);
-		} else if (cmd.equals(F("pcdown")))
-		{
-			SendCallback(P_CENTER_DOWN);
-		} else if (cmd.equals(F("pcup")))
-		{
-			SendCallback(P_CENTER_UP);
-		} else if (cmd.equals(F("sactive")))
-		{
-			value = "1";
-			SendCallback(S_ACTIVE);
-		} else if (cmd.equals(F("sinactive")))
-		{
-			value = "0";
-			// updateControl(c, client->id());
-			SendCallback(S_INACTIVE);
-		} else if (cmd.equals(F("slvalue")))
-		{
-			value = data;
-			// updateControl(c, client->id());
-			SendCallback(SL_VALUE);
-		} else if (cmd.equals(F("nvalue")))
-		{
-			value = data;
-			// updateControl(c, client->id());
-			SendCallback(N_VALUE);
-		} else if (cmd.equals(F("tvalue")))
-		{
-			value = data;
-			// updateControl(c, client->id());
-			SendCallback(T_VALUE);
-		} else if (cmd.equals(F("tabvalue")))
-		{
-			SendCallback(0);
-		} else if (cmd.equals(F("svalue")))
-		{
-			value = data;
-			// updateControl(c, client->id());
-			SendCallback(S_VALUE);
-		} else if (cmd.equals(F("time")))
-		{
-			value = data;
-			// updateControl(c, client->id());
-			SendCallback(TM_VALUE);
-		} else
-		{
+	if (cmd.equals(F("pldown")))
+	{
+		SendCallback(P_LEFT_DOWN);
+		return;
+	} else if (cmd.equals(F("plup")))
+	{
+		SendCallback(P_LEFT_UP);
+	} else if (cmd.equals(F("prdown")))
+	{
+		SendCallback(P_RIGHT_DOWN);
+	} else if (cmd.equals(F("prup")))
+	{
+		SendCallback(P_RIGHT_UP);
+	} else if (cmd.equals(F("pbdown")))
+	{
+		SendCallback(P_BACK_DOWN);
+	} else if (cmd.equals(F("pbup")))
+	{
+		SendCallback(P_BACK_UP);
+	} else if (cmd.equals(F("pcdown")))
+	{
+		SendCallback(P_CENTER_DOWN);
+	} else if (cmd.equals(F("pcup")))
+	{
+		SendCallback(P_CENTER_UP);
+	} else if (cmd.equals(F("sactive")))
+	{
+		value = "1";
+		SendCallback(S_ACTIVE);
+	} else if (cmd.equals(F("sinactive")))
+	{
+		value = "0";
+		// updateControl(c, client->id());
+		SendCallback(S_INACTIVE);
+	} else if (cmd.equals(F("slvalue")))
+	{
+		value = data;
+		// updateControl(c, client->id());
+		SendCallback(SL_VALUE);
+	} else if (cmd.equals(F("nvalue")))
+	{
+		value = data;
+		// updateControl(c, client->id());
+		SendCallback(N_VALUE);
+	} else if (cmd.equals(F("tvalue")))
+	{
+		value = data;
+		// updateControl(c, client->id());
+		SendCallback(T_VALUE);
+	} else if (cmd.equals(F("tabvalue")))
+	{
+		SendCallback(0);
+	} else if (cmd.equals(F("svalue")))
+	{
+		value = data;
+		// updateControl(c, client->id());
+		SendCallback(S_VALUE);
+	} else if (cmd.equals(F("time")))
+	{
+		value = data;
+		// updateControl(c, client->id());
+		SendCallback(TM_VALUE);
+	}
 #if defined(DEBUG_ESPUI)
-                if (ESPUI.verbosity)
-                {
-                    Serial.println(F("Control::onWsEvent:Malformed message from the websocket"));
-                }
+    else if (ESPUI.verbosity)
+    {
+        Serial.println(F("Control::onWsEvent:Malformed message from the websocket"));
+    }
 #endif
-		}
-	} while (false);
 }

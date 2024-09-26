@@ -4,7 +4,6 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include "ESPUIclientFsm.h"
-#include "ESPUIcontrol.h"
 
 class ESPUIclient
 {
@@ -43,22 +42,22 @@ protected:
 
 	// bool        NeedsNotification() { return pCurrentFsmState != &fsm_EspuiClient_state_Idle_imp; }
 
-	bool CanSend();
+	bool CanSend() const;
 
-	void FillInHeader(ArduinoJson::JsonDocument &document);
+	static void FillInHeader(JsonDocument &document);
 
-	uint32_t prepareJSONChunk(uint16_t startindex, JsonDocument &rootDoc, bool InUpdateMode, String value);
+	uint32_t prepareJSONChunk(uint16_t startindex, JsonDocument &rootDoc, bool InUpdateMode, const String &value) const;
 
-	bool SendControlsToClient(uint16_t startidx, ClientUpdateType_t TransferMode, String FragmentRequest);
+	bool SendControlsToClient(uint16_t startidx, ClientUpdateType_t TransferMode, const String &FragmentRequest);
 
-	bool SendClientNotification(ClientUpdateType_t value);
+	bool SendClientNotification(ClientUpdateType_t value) const;
 
 private:
 	uint32_t CurrentSyncID = 0;
 	uint32_t NextSyncID = 0;
 
 public:
-	ESPUIclient(AsyncWebSocketClient *_client);
+	explicit ESPUIclient(AsyncWebSocketClient *_client);
 
 	ESPUIclient(const ESPUIclient &source);
 
@@ -66,13 +65,13 @@ public:
 
 	void NotifyClient(ClientUpdateType_t value);
 
-	bool onWsEvent(AwsEventType type, void *arg, uint8_t *data, size_t len);
+	bool onWsEvent(AwsEventType type, void *arg, const uint8_t *data, size_t len);
 
-	bool IsSyncronized();
+	bool IsSyncronized() const;
 
-	uint32_t id() { return client->id(); }
+	uint32_t id() const { return client->id(); }
 
 	void SetState(ClientUpdateType_t value);
 
-	bool SendJsonDocToWebSocket(ArduinoJson::JsonDocument &document);
+	bool SendJsonDocToWebSocket(const JsonDocument &document) const;
 };

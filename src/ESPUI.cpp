@@ -113,7 +113,7 @@ void ESPUIClass::list() const
 
 void deleteFile(const char *path)
 {
-	bool exists = ESPUI.EspuiLittleFS.exists(path);
+	const bool exists = ESPUI.EspuiLittleFS.exists(path);
 	if (!exists)
 	{
 #if defined(DEBUG_ESPUI)
@@ -131,29 +131,27 @@ void deleteFile(const char *path)
     {
         Serial.printf_P(PSTR("Deleting file: %s\n"), path);
     }
-#endif
 
 	bool didRemove = ESPUI.EspuiLittleFS.remove(path);
 	if (didRemove)
 	{
-#if defined(DEBUG_ESPUI)
         if (ESPUI.verbosity)
         {
             Serial.println(F("File deleted"));
         }
-#endif
 	} else
 	{
-#if defined(DEBUG_ESPUI)
         if (ESPUI.verbosity)
         {
             Serial.println(F("Delete failed"));
         }
-#endif
 	}
+#else
+	ESPUI.EspuiLittleFS.remove(path);
+#endif
 }
 
-void ESPUIClass::writeFile(const char *path, const char *data)
+void ESPUIClass::writeFile(const char *path, const char *data) const
 {
 #if defined(DEBUG_ESPUI)
     if (ESPUI.verbosity)
@@ -196,7 +194,7 @@ void ESPUIClass::writeFile(const char *path, const char *data)
 
 // end LITTLEFS functions
 
-void ESPUIClass::prepareFileSystem(bool format)
+void ESPUIClass::prepareFileSystem(const bool format) const
 {
 	// this function should only be used once
 
@@ -287,7 +285,8 @@ void ESPUIClass::prepareFileSystem(bool format)
 
 // Handle Websockets Communication
 void ESPUIClass::onWsEvent(
-	AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
+	AsyncWebSocket *server, AsyncWebSocketClient *client, const AwsEventType type, void *arg, const uint8_t *data,
+	const size_t len)
 {
 	// Serial.println(String("ESPUIClass::OnWsEvent: type: ") + String(type));
 	RemoveToBeDeletedControls();
@@ -328,32 +327,35 @@ void ESPUIClass::onWsEvent(
 	}
 }
 
-uint16_t ESPUIClass::addControl(ControlType type, const char *label)
+uint16_t ESPUIClass::addControl(const ControlType type, const char *label)
 {
 	return addControl(type, label, String(""));
 }
 
-uint16_t ESPUIClass::addControl(ControlType type, const char *label, const String &value)
+uint16_t ESPUIClass::addControl(const ControlType type, const char *label, const String &value)
 {
 	return addControl(type, label, value, ControlColor::Turquoise);
 }
 
-uint16_t ESPUIClass::addControl(ControlType type, const char *label, const String &value, ControlColor color)
+uint16_t ESPUIClass::addControl(const ControlType type, const char *label, const String &value,
+                                const ControlColor color)
 {
 	return addControl(type, label, value, color, Control::noParent);
 }
 
 uint16_t ESPUIClass::addControl(
-	ControlType type, const char *label, const String &value, ControlColor color, uint16_t parentControl)
+	const ControlType type, const char *label, const String &value, const ControlColor color,
+	const uint16_t parentControl)
 {
 	return addControl(type, label, value, color, parentControl,
 	                  new Control(type, label, nullptr, value, color, true, parentControl));
 }
 
-uint16_t ESPUIClass::addControl(ControlType type, const char *label, const String &value, ControlColor color,
-                                uint16_t parentControl, std::function<void(Control *, int)> callback)
+uint16_t ESPUIClass::addControl(const ControlType type, const char *label, const String &value,
+                                const ControlColor color,
+                                const uint16_t parentControl, const std::function<void(Control *, int)> &callback)
 {
-	uint16_t id = addControl(type, label, value, color, parentControl);
+	const uint16_t id = addControl(type, label, value, color, parentControl);
 	// set the original style callback
 	getControl(id)->callback = callback;
 	return id;
@@ -384,7 +386,7 @@ uint16_t ESPUIClass::addControl(
 
 	xSemaphoreGive(ControlsSemaphore);
 
-	NotifyClients(ClientUpdateType_t::RebuildNeeded);
+	NotifyClients(ESPUIclient::ClientUpdateType_t::RebuildNeeded);
 
 	if (control)
 		return control->id;
@@ -392,7 +394,7 @@ uint16_t ESPUIClass::addControl(
 	return 0;
 }
 
-bool ESPUIClass::removeControl(uint16_t id, bool force_rebuild_ui)
+bool ESPUIClass::removeControl(const uint16_t id, const bool force_rebuild_ui)
 {
 	bool Response = false;
 
@@ -408,7 +410,7 @@ bool ESPUIClass::removeControl(uint16_t id, bool force_rebuild_ui)
 			jsonReload();
 		} else
 		{
-			NotifyClients(ClientUpdateType_t::RebuildNeeded);
+			NotifyClients(ESPUIclient::ClientUpdateType_t::RebuildNeeded);
 		}
 	}
 #ifdef DEBUG_ESPUI
@@ -437,7 +439,7 @@ void ESPUIClass::RemoveToBeDeletedControls()
 			{
 				// this is the root control
 				controls = NextControl;
-			} else
+			} else if (PreviousControl != nullptr)
 			{
 				PreviousControl->next = NextControl;
 			}
@@ -453,87 +455,96 @@ void ESPUIClass::RemoveToBeDeletedControls()
 	xSemaphoreGive(ControlsSemaphore);
 }
 
-uint16_t ESPUIClass::label(const char *label, ControlColor color, const String &value)
+uint16_t ESPUIClass::label(const char *label, const ControlColor color, const String &value)
 {
 	return addControl(ControlType::Label, label, value, color);
 }
 
-uint16_t ESPUIClass::graph(const char *label, ControlColor color)
+uint16_t ESPUIClass::graph(const char *label, const ControlColor color)
 {
 	return addControl(ControlType::Graph, label, "", color);
 }
 
 uint16_t ESPUIClass::slider(
-	const char *label, std::function<void(Control *, int)> callback, ControlColor color, int value, int min, int max)
+	const char *label, const std::function<void(Control *, int)> &callback, const ControlColor color, const int value,
+	const int min, const int max)
 {
-	uint16_t sliderId
+	const uint16_t sliderId
 			= addControl(ControlType::Slider, label, String(value), color, Control::noParent, callback);
 	addControl(ControlType::Min, label, String(min), ControlColor::None, sliderId);
 	addControl(ControlType::Max, label, String(max), ControlColor::None, sliderId);
 	return sliderId;
 }
 
-uint16_t ESPUIClass::button(const char *label, std::function<void(Control *, int)> callback, ControlColor color,
+uint16_t ESPUIClass::button(const char *label, const std::function<void(Control *, int)> &callback,
+                            const ControlColor color,
                             const String &value)
 {
 	return addControl(ControlType::Button, label, value, color, Control::noParent, callback);
 }
 
-uint16_t ESPUIClass::switcher(const char *label, std::function<void(Control *, int)> callback, ControlColor color,
-                              bool startState)
+uint16_t ESPUIClass::switcher(const char *label, const std::function<void(Control *, int)> &callback,
+                              const ControlColor color,
+                              const bool startState)
 {
 	return addControl(ControlType::Switcher, label, startState ? "1" : "0", color, Control::noParent, callback);
 }
 
-uint16_t ESPUIClass::pad(const char *label, std::function<void(Control *, int)> callback, ControlColor color)
+uint16_t ESPUIClass::pad(const char *label, const std::function<void(Control *, int)> &callback,
+                         const ControlColor color)
 {
 	return addControl(ControlType::Pad, label, "", color, Control::noParent, callback);
 }
 
-uint16_t ESPUIClass::padWithCenter(const char *label, std::function<void(Control *, int)> callback, ControlColor color)
+uint16_t ESPUIClass::padWithCenter(const char *label, const std::function<void(Control *, int)> &callback,
+                                   const ControlColor color)
 {
 	return addControl(ControlType::PadWithCenter, label, "", color, Control::noParent, callback);
 }
 
 uint16_t ESPUIClass::number(
-	const char *label, std::function<void(Control *, int)> callback, ControlColor color, int number, int min, int max)
+	const char *label, const std::function<void(Control *, int)> &callback, const ControlColor color, const int number,
+	const int min, const int max)
 {
-	uint16_t numberId = addControl(ControlType::Number, label, String(number), color, Control::noParent, callback);
+	const uint16_t numberId = addControl(ControlType::Number, label, String(number), color, Control::noParent,
+	                                     callback);
 	addControl(ControlType::Min, label, String(min), ControlColor::None, numberId);
 	addControl(ControlType::Max, label, String(max), ControlColor::None, numberId);
 	return numberId;
 }
 
-uint16_t ESPUIClass::gauge(const char *label, ControlColor color, int number, int min, int max)
+uint16_t ESPUIClass::gauge(const char *label, const ControlColor color, const int number, const int min, const int max)
 {
-	uint16_t numberId = addControl(ControlType::Gauge, label, String(number), color, Control::noParent);
+	const uint16_t numberId = addControl(ControlType::Gauge, label, String(number), color, Control::noParent);
 	addControl(ControlType::Min, label, String(min), ControlColor::None, numberId);
 	addControl(ControlType::Max, label, String(max), ControlColor::None, numberId);
 	return numberId;
 }
 
-uint16_t ESPUIClass::separator(const char *label)
+void ESPUIClass::separator(const char *label)
 {
-	return addControl(ControlType::Separator, label, "", ControlColor::Alizarin, Control::noParent, nullptr);
+	addControl(ControlType::Separator, label, "", ControlColor::Alizarin, Control::noParent, nullptr);
 }
 
-uint16_t ESPUIClass::fileDisplay(const char *label, ControlColor color, String filename)
+uint16_t ESPUIClass::fileDisplay(const char *label, const ControlColor color, const String &filename)
 {
 	return addControl(ControlType::FileDisplay, label, filename, color, Control::noParent);
 }
 
-uint16_t ESPUIClass::accelerometer(const char *label, std::function<void(Control *, int)> callback, ControlColor color)
+uint16_t ESPUIClass::accelerometer(const char *label, const std::function<void(Control *, int)> &callback,
+                                   const ControlColor color)
 {
 	return addControl(ControlType::Accel, label, "", color, Control::noParent, callback);
 }
 
-uint16_t ESPUIClass::text(const char *label, std::function<void(Control *, int)> callback, ControlColor color,
+uint16_t ESPUIClass::text(const char *label, const std::function<void(Control *, int)> &callback,
+                          const ControlColor color,
                           const String &value)
 {
 	return addControl(ControlType::Text, label, value, color, Control::noParent, callback);
 }
 
-Control *ESPUIClass::getControl(uint16_t id)
+Control *ESPUIClass::getControl(const uint16_t id) const
 {
 	xSemaphoreTake(ControlsSemaphore, portMAX_DELAY);
 	Control *Response = getControlNoLock(id);
@@ -544,7 +555,7 @@ Control *ESPUIClass::getControl(uint16_t id)
 // WARNING: Anytime you walk the chain of controllers, the protection semaphore
 //          MUST be locked. This function assumes that the semaphore is locked
 //          at the time it is called. Make sure YOU locked it :)
-Control *ESPUIClass::getControlNoLock(uint16_t id)
+Control *ESPUIClass::getControlNoLock(const uint16_t id) const
 {
 	Control *Response = nullptr;
 	Control *control = controls;
@@ -565,7 +576,7 @@ Control *ESPUIClass::getControlNoLock(uint16_t id)
 	return Response;
 }
 
-void ESPUIClass::updateControl(Control *control, int)
+void ESPUIClass::updateControl(Control *control, int) const
 {
 	if (!control)
 	{
@@ -573,12 +584,12 @@ void ESPUIClass::updateControl(Control *control, int)
 	}
 	// tell the control it has been updated
 	control->SetControlChangedId(ESPUI.GetNextControlChangeId());
-	NotifyClients(ClientUpdateType_t::UpdateNeeded);
+	NotifyClients(ESPUIclient::ClientUpdateType_t::UpdateNeeded);
 }
 
 uint32_t ESPUIClass::GetNextControlChangeId()
 {
-	if (uint32_t(-1) == ControlChangeID)
+	if (-1 == ControlChangeID)
 	{
 		// force a reload which resets the counters
 		jsonReload();
@@ -586,7 +597,7 @@ uint32_t ESPUIClass::GetNextControlChangeId()
 	return ++ControlChangeID;
 }
 
-void ESPUIClass::setPanelStyle(uint16_t id, const String &style, int clientId)
+void ESPUIClass::setPanelStyle(const uint16_t id, const String &style, const int clientId) const
 {
 	Control *control = getControl(id);
 	if (control)
@@ -596,7 +607,7 @@ void ESPUIClass::setPanelStyle(uint16_t id, const String &style, int clientId)
 	}
 }
 
-void ESPUIClass::setElementStyle(uint16_t id, const String &style, int clientId)
+void ESPUIClass::setElementStyle(const uint16_t id, const String &style, const int clientId) const
 {
 	Control *control = getControl(id);
 	if (control)
@@ -606,7 +617,7 @@ void ESPUIClass::setElementStyle(uint16_t id, const String &style, int clientId)
 	}
 }
 
-void ESPUIClass::setInputType(uint16_t id, const String &type, int clientId)
+void ESPUIClass::setInputType(const uint16_t id, const String &type, const int clientId) const
 {
 	Control *control = getControl(id);
 	if (control)
@@ -616,7 +627,7 @@ void ESPUIClass::setInputType(uint16_t id, const String &type, int clientId)
 	}
 }
 
-void ESPUIClass::setPanelWide(uint16_t id, bool wide)
+void ESPUIClass::setPanelWide(const uint16_t id, const bool wide) const
 {
 	Control *control = getControl(id);
 	if (control)
@@ -625,7 +636,7 @@ void ESPUIClass::setPanelWide(uint16_t id, bool wide)
 	}
 }
 
-void ESPUIClass::setEnabled(uint16_t id, bool enabled, int clientId)
+void ESPUIClass::setEnabled(const uint16_t id, const bool enabled, const int clientId) const
 {
 	Control *control = getControl(id);
 	if (control)
@@ -636,7 +647,7 @@ void ESPUIClass::setEnabled(uint16_t id, bool enabled, int clientId)
 	}
 }
 
-void ESPUIClass::setVertical(uint16_t id, bool vert)
+void ESPUIClass::setVertical(const uint16_t id, const bool vert) const
 {
 	Control *control = getControl(id);
 	if (control)
@@ -645,7 +656,7 @@ void ESPUIClass::setVertical(uint16_t id, bool vert)
 	}
 }
 
-void ESPUIClass::updateControl(uint16_t id, int clientId)
+void ESPUIClass::updateControl(uint16_t id, const int clientId) const
 {
 	Control *control = getControl(id);
 
@@ -663,7 +674,7 @@ void ESPUIClass::updateControl(uint16_t id, int clientId)
 	updateControl(control, clientId);
 }
 
-void ESPUIClass::updateControlValue(Control *control, const String &value, int clientId)
+void ESPUIClass::updateControlValue(Control *control, const String &value, const int clientId) const
 {
 	if (!control)
 	{
@@ -674,7 +685,7 @@ void ESPUIClass::updateControlValue(Control *control, const String &value, int c
 	updateControl(control, clientId);
 }
 
-void ESPUIClass::updateControlValue(uint16_t id, const String &value, int clientId)
+void ESPUIClass::updateControlValue(uint16_t id, const String &value, const int clientId) const
 {
 	Control *control = getControl(id);
 
@@ -692,12 +703,12 @@ void ESPUIClass::updateControlValue(uint16_t id, const String &value, int client
 	updateControlValue(control, value, clientId);
 }
 
-void ESPUIClass::updateControlLabel(uint16_t id, const char *value, int clientId)
+void ESPUIClass::updateControlLabel(const uint16_t id, const char *value, const int clientId) const
 {
 	updateControlLabel(getControl(id), value, clientId);
 }
 
-void ESPUIClass::updateControlLabel(Control *control, const char *value, int clientId)
+void ESPUIClass::updateControlLabel(Control *control, const char *value, const int clientId) const
 {
 	if (!control)
 	{
@@ -713,7 +724,7 @@ void ESPUIClass::updateControlLabel(Control *control, const char *value, int cli
 	updateControl(control, clientId);
 }
 
-void ESPUIClass::updateVisibility(uint16_t id, bool visibility, int clientId)
+void ESPUIClass::updateVisibility(const uint16_t id, const bool visibility, const int clientId) const
 {
 	Control *control = getControl(id);
 	if (control)
@@ -723,70 +734,70 @@ void ESPUIClass::updateVisibility(uint16_t id, bool visibility, int clientId)
 	}
 }
 
-void ESPUIClass::print(uint16_t id, const String &value)
+void ESPUIClass::print(const uint16_t id, const String &value) const
 {
 	updateControlValue(id, value);
 }
 
-void ESPUIClass::updateLabel(uint16_t id, const String &value)
+void ESPUIClass::updateLabel(const uint16_t id, const String &value) const
 {
 	updateControlValue(id, value);
 }
 
-void ESPUIClass::updateButton(uint16_t id, const String &value)
+void ESPUIClass::updateButton(const uint16_t id, const String &value) const
 {
 	updateControlValue(id, value);
 }
 
-void ESPUIClass::updateSlider(uint16_t id, int nValue, int clientId)
+void ESPUIClass::updateSlider(const uint16_t id, const int nValue, const int clientId) const
 {
 	updateControlValue(id, String(nValue), clientId);
 }
 
-void ESPUIClass::updateSwitcher(uint16_t id, bool nValue, int clientId)
+void ESPUIClass::updateSwitcher(const uint16_t id, const bool nValue, const int clientId) const
 {
 	updateControlValue(id, String(nValue ? "1" : "0"), clientId);
 }
 
-void ESPUIClass::updateNumber(uint16_t id, int number, int clientId)
+void ESPUIClass::updateNumber(const uint16_t id, const int number, const int clientId) const
 {
 	updateControlValue(id, String(number), clientId);
 }
 
-void ESPUIClass::updateText(uint16_t id, const String &text, int clientId)
+void ESPUIClass::updateText(const uint16_t id, const String &text, const int clientId) const
 {
 	updateControlValue(id, text, clientId);
 }
 
-void ESPUIClass::updateSelect(uint16_t id, const String &text, int clientId)
+void ESPUIClass::updateSelect(const uint16_t id, const String &text, const int clientId) const
 {
 	updateControlValue(id, text, clientId);
 }
 
-void ESPUIClass::updateGauge(uint16_t id, int number, int clientId)
+void ESPUIClass::updateGauge(const uint16_t id, const int number, const int clientId) const
 {
 	updateControlValue(id, String(number), clientId);
 }
 
-void ESPUIClass::updateTime(uint16_t id, int clientId)
+void ESPUIClass::updateTime(const uint16_t id, const int clientId) const
 {
 	updateControl(id, clientId);
 }
 
-void ESPUIClass::clearGraph(uint16_t id, int clientId)
+void ESPUIClass::clearGraph(const uint16_t id, const int clientId)
 {
 	do // once
 	{
-		Control *control = getControl(id);
+		const Control *control = getControl(id);
 		if (!control)
 		{
 			break;
 		}
 
 		AllocateJsonDocument(document, jsonUpdateDocumentSize);
-		JsonObject root = document.to<JsonObject>();
+		const JsonObject root = document.to<JsonObject>();
 
-		root[F("type")] = (int) ControlType::Graph + UpdateOffset;
+		root[F("type")] = static_cast<int>(ControlType::Graph) + static_cast<int>(ControlType::UpdateOffset);
 		root[F("value")] = 0;
 		root[F("id")] = control->id;
 
@@ -794,20 +805,20 @@ void ESPUIClass::clearGraph(uint16_t id, int clientId)
 	} while (false);
 }
 
-void ESPUIClass::addGraphPoint(uint16_t id, int nValue, int clientId)
+void ESPUIClass::addGraphPoint(const uint16_t id, const int nValue, const int clientId)
 {
 	do // once
 	{
-		Control *control = getControl(id);
+		const Control *control = getControl(id);
 		if (!control)
 		{
 			break;
 		}
 
 		AllocateJsonDocument(document, jsonUpdateDocumentSize);
-		JsonObject root = document.to<JsonObject>();
+		const JsonObject root = document.to<JsonObject>();
 
-		root[F("type")] = (int) ControlType::GraphPoint;
+		root[F("type")] = static_cast<int>(ControlType::GraphPoint);
 		root[F("value")] = nValue;
 		root[F("id")] = control->id;
 
@@ -815,7 +826,7 @@ void ESPUIClass::addGraphPoint(uint16_t id, int nValue, int clientId)
 	} while (false);
 }
 
-bool ESPUIClass::SendJsonDocToWebSocket(ArduinoJson::JsonDocument &document, uint16_t clientId)
+bool ESPUIClass::SendJsonDocToWebSocket(const ArduinoJson::JsonDocument &document, const uint16_t clientId)
 {
 	bool Response = false;
 
@@ -827,7 +838,7 @@ bool ESPUIClass::SendJsonDocToWebSocket(ArduinoJson::JsonDocument &document, uin
 		}
 	} else
 	{
-		for (auto CurrentClient: MapOfClients)
+		for (const auto CurrentClient: MapOfClients)
 		{
 			Response |= CurrentClient.second->SendJsonDocToWebSocket(document);
 		}
@@ -836,36 +847,36 @@ bool ESPUIClass::SendJsonDocToWebSocket(ArduinoJson::JsonDocument &document, uin
 	return Response;
 }
 
-void ESPUIClass::jsonDom(uint16_t, AsyncWebSocketClient *, bool)
+void ESPUIClass::jsonDom(uint16_t, AsyncWebSocketClient *, bool) const
 {
-	NotifyClients(ClientUpdateType_t::RebuildNeeded);
+	NotifyClients(ESPUIclient::ClientUpdateType_t::RebuildNeeded);
 }
 
-// Tell all of the clients that they need to ask for an upload of the control data.
-void ESPUIClass::NotifyClients(ClientUpdateType_t newState)
+// Tell all the clients that they need to ask for an upload of the control data.
+void ESPUIClass::NotifyClients(const ESPUIclient::ClientUpdateType_t newState) const
 {
-	for (auto &CurrentClient: MapOfClients)
+	for (const auto &CurrentClient: MapOfClients)
 	{
 		CurrentClient.second->NotifyClient(newState);
 	}
 }
 
-void ESPUIClass::jsonReload()
+void ESPUIClass::jsonReload() const
 {
-	for (auto &CurrentClient: MapOfClients)
+	for (const auto &CurrentClient: MapOfClients)
 	{
 		// Serial.println("Requesting Reload");
-		CurrentClient.second->NotifyClient(ClientUpdateType_t::ReloadNeeded);
+		CurrentClient.second->NotifyClient(ESPUIclient::ClientUpdateType_t::ReloadNeeded);
 	}
 }
 
-void ESPUIClass::beginSPIFFS(const char *_title, const char *username, const char *password, uint16_t port)
+void ESPUIClass::beginSPIFFS(const char *_title, const char *username, const char *password, const uint16_t port)
 {
 	// Backwards compatibility wrapper
 	beginLITTLEFS(_title, username, password, port);
 }
 
-void ESPUIClass::beginLITTLEFS(const char *_title, const char *username, const char *password, uint16_t port)
+void ESPUIClass::beginLITTLEFS(const char *_title, const char *username, const char *password, const uint16_t port)
 {
 	ui_title = _title;
 	basicAuthUsername = username;
@@ -882,7 +893,7 @@ void ESPUIClass::beginLITTLEFS(const char *_title, const char *username, const c
 	server = new AsyncWebServer(port);
 	ws = new AsyncWebSocket("/ws");
 
-	bool fsBegin = EspuiLittleFS.begin();
+	const bool fsBegin = EspuiLittleFS.begin();
 	if (!fsBegin)
 	{
 #if defined(DEBUG_ESPUI)
@@ -903,7 +914,7 @@ void ESPUIClass::beginLITTLEFS(const char *_title, const char *username, const c
     }
 #endif
 
-	bool indexExists = EspuiLittleFS.exists("/index.htm");
+	const bool indexExists = EspuiLittleFS.exists("/index.htm");
 	if (!indexExists)
 	{
 #if defined(DEBUG_ESPUI)
@@ -917,8 +928,9 @@ void ESPUIClass::beginLITTLEFS(const char *_title, const char *username, const c
 		return;
 	}
 
-	ws->onEvent([](AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data,
-	               size_t len)
+	ws->onEvent([](AsyncWebSocket *server, AsyncWebSocketClient *client, const AwsEventType type, void *arg,
+	               const uint8_t *data,
+	               const size_t len)
 	{
 		ESPUI.onWsEvent(server, client, type, arg, data, len);
 	});
@@ -926,10 +938,9 @@ void ESPUIClass::beginLITTLEFS(const char *_title, const char *username, const c
 
 	if (basicAuth)
 	{
-		if (WS_AUTHENTICATION)
-		{
-			ws->setAuthentication(basicAuthUsername, basicAuthPassword);
-		}
+#if (WS_AUTHENTICATION)
+		ws->setAuthentication(basicAuthUsername, basicAuthPassword);
+#endif
 		server->serveStatic("/", EspuiLittleFS, "/").setDefaultFile("index.htm").setAuthentication(username, password);
 	} else
 	{
@@ -968,7 +979,7 @@ void ESPUIClass::beginLITTLEFS(const char *_title, const char *username, const c
 #endif
 }
 
-void ESPUIClass::begin(const char *_title, const char *username, const char *password, uint16_t port)
+void ESPUIClass::begin(const char *_title, const char *username, const char *password, const uint16_t port)
 {
 	basicAuthUsername = username;
 	basicAuthPassword = password;
@@ -986,16 +997,19 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 	server = new AsyncWebServer(port);
 	ws = new AsyncWebSocket("/ws");
 
-	ws->onEvent([](AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data,
-	               size_t len)
+	ws->onEvent([](AsyncWebSocket *server, AsyncWebSocketClient *client, const AwsEventType type, void *arg,
+	               const uint8_t *data,
+	               const size_t len)
 	{
 		ESPUI.onWsEvent(server, client, type, arg, data, len);
 	});
 
 	server->addHandler(ws);
 
-	if (basicAuth && WS_AUTHENTICATION)
+#if (WS_AUTHENTICATION)
+	if (basicAuth)
 		ws->setAuthentication(username, password);
+#endif
 
 	server->on("/", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
@@ -1124,7 +1138,7 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 			responseText += F("<!DOCTYPE html><html><head><title>Captive Portal</title></head><body>");
 			responseText += ("<p>If site does not re-direct click here <a href='http://" + WiFi.softAPIP().toString() +
 			                 "'>this link</a></p>");
-			responseText += ("</body></html><head><meta http-equiv=\"Refresh\" content=\"0; URL='http://" + WiFi.
+			responseText += (R"(</body></html><head><meta http-equiv="Refresh" content="0; URL='http://)" + WiFi.
 			                 softAPIP().toString() + "'\" /></head>");
 			response->write(responseText.c_str(), responseText.length());
 			request->send(response);
@@ -1145,7 +1159,7 @@ void ESPUIClass::begin(const char *_title, const char *username, const char *pas
 #endif
 }
 
-void ESPUIClass::setVerbosity(Verbosity v)
+void ESPUIClass::setVerbosity(const Verbosity v)
 {
 	verbosity = v;
 }

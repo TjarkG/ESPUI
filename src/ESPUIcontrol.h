@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>
 #include <functional>
 
-enum ControlType : uint8_t
+enum class ControlType : uint8_t
 {
 	// fixed Controls
 	Title = 0,
@@ -37,7 +37,7 @@ enum ControlType : uint8_t
 	UpdateOffset = 100,
 };
 
-enum ControlColor : uint8_t
+enum class ControlColor : uint8_t
 {
 	Turquoise,
 	Emerald,
@@ -60,9 +60,9 @@ public:
 	String value;
 	ControlColor color;
 	bool visible;
-	bool wide;
-	bool vertical;
-	bool enabled;
+	bool wide {false};
+	bool vertical {false};
+	bool enabled {false};
 	uint16_t parentControl;
 	String panelStyle;
 	String elementStyle;
@@ -74,7 +74,7 @@ public:
 	Control(ControlType type,
 	        const char *label,
 	        std::function<void(Control *, int)> callback,
-	        const String &value,
+	        String value,
 	        ControlColor color,
 	        bool visible,
 	        uint16_t parentControl);
@@ -83,34 +83,34 @@ public:
 
 	void SendCallback(int type);
 
-	bool HasCallback() { return (nullptr != callback); }
+	bool HasCallback() const { return nullptr != callback; }
 
-	bool MarshalControl(ArduinoJson::JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
-	                    uint32_t &EstimmatedUsedSpace);
+	bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
+	                    uint32_t &EstimatedUsedSpace) const;
 
-	void MarshalErrorMessage(ArduinoJson::JsonObject &item);
+	void MarshalErrorMessage(const JsonObject &item) const;
 
 	void DeleteControl();
 
-	void onWsEvent(String &cmd, String &data);
+	void onWsEvent(const String &cmd, const String &data);
 
-	inline bool ToBeDeleted() { return _ToBeDeleted; }
+	bool ToBeDeleted() const { return toDelete; }
 
-	inline bool NeedsSync(uint32_t lastControlChangeID)
+	bool NeedsSync(const uint32_t lastControlChangeID) const
 	{
-		return (false == _ToBeDeleted) && (lastControlChangeID < ControlChangeID);
+		return (false == toDelete) && (lastControlChangeID < ControlChangeID);
 	}
 
-	void SetControlChangedId(uint32_t value) { ControlChangeID = value; }
+	void SetControlChangedId(const uint32_t value) { ControlChangeID = value; }
 
 private:
-	bool _ToBeDeleted = false;
+	bool toDelete = false;
 	uint32_t ControlChangeID = 0;
 	String OldValue = emptyString;
 
 	// multiplier for converting a typical controller label or value to a Json object
 #define JsonMarshalingRatio 3
-	// Marshaed Control overhead length
+	// Marshaled Control overhead length
 #define JsonMarshaledOverhead 64
 };
 
