@@ -187,7 +187,7 @@ bool ESPUIclient::onWsEvent(const AwsEventType type, void *arg, const uint8_t *d
 			if (cmd.equals(F("uifragmentok")))
 			{
 				if (!emptyString.equals(value))
-					pCurrentFsmState->ProcessAck(-static_cast<uint16_t>(-1), value);
+					pCurrentFsmState->ProcessAck(0xFFFF, value);
 				else
 				{
 					Serial.println(F(
@@ -407,7 +407,7 @@ bool ESPUIclient::SendControlsToClient(const uint16_t start_idx, const ClientUpd
 	AllocateJsonDocument(document, ESPUI.jsonInitialDocumentSize);
 	FillInHeader(document);
 	document[F("startindex")] = start_idx;
-	document[F("totalcontrols")] = static_cast<uint16_t>(-1); // ESPUI.controlCount;
+	document[F("totalcontrols")] = 0xFFFF; // ESPUI.controlCount;
 
 	if (0 == start_idx)
 	{
