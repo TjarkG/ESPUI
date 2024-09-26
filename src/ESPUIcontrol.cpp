@@ -103,7 +103,7 @@ bool Control::MarshalControl(const JsonObject &_item,
 		_item[F("offset")] = StartingOffset;
 		_item[F("length")] = ValueLenToSend;
 		_item[F("total")] = value.length();
-		AllocateNamedJsonObject(item, _item, F("control"));
+		item[F("control")] = _item;
 	}
 
 	item[F("id")] = id;

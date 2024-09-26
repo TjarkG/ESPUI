@@ -76,7 +76,7 @@ void ESPUIClass::deleteFile(const char *path) const
 
 void ESPUIClass::writeFile(const char *path, const char *data) const
 {
-	File file = EspuiLittleFS.open(path, FILE_WRITING);
+	File file = EspuiLittleFS.open(path, "w");
 	if (!file)
 		return;
 
@@ -155,28 +155,11 @@ void ESPUIClass::onWsEvent(
 	}
 }
 
-uint16_t ESPUIClass::addControl(const ControlType type, const char *label)
-{
-	return addControl(type, label, String(""));
-}
-
-uint16_t ESPUIClass::addControl(const ControlType type, const char *label, const String &value)
-{
-	return addControl(type, label, value, ControlColor::Turquoise);
-}
-
-uint16_t ESPUIClass::addControl(const ControlType type, const char *label, const String &value,
-                                const ControlColor color)
-{
-	return addControl(type, label, value, color, Control::noParent);
-}
-
 uint16_t ESPUIClass::addControl(
 	const ControlType type, const char *label, const String &value, const ControlColor color,
 	const uint16_t parentControl)
 {
-	return addControl(type, label, value, color, parentControl,
-	                  new Control(type, label, nullptr, value, color, true, parentControl));
+	return addControl(new Control(type, label, nullptr, value, color, true, parentControl));
 }
 
 uint16_t ESPUIClass::addControl(const ControlType type, const char *label, const String &value,
@@ -189,9 +172,7 @@ uint16_t ESPUIClass::addControl(const ControlType type, const char *label, const
 	return id;
 }
 
-uint16_t ESPUIClass::addControl(
-	ControlType type, const char *label, const String &value, ControlColor color, uint16_t parentControl,
-	Control *control)
+uint16_t ESPUIClass::addControl(Control *control)
 {
 	xSemaphoreTake(ControlsSemaphore, portMAX_DELAY);
 
@@ -345,7 +326,7 @@ uint16_t ESPUIClass::gauge(const char *label, const ControlColor color, const in
 
 void ESPUIClass::separator(const char *label)
 {
-	addControl(ControlType::Separator, label, "", ControlColor::Red, Control::noParent, nullptr);
+	addControl(nullptr);
 }
 
 uint16_t ESPUIClass::fileDisplay(const char *label, const ControlColor color, const String &filename)
@@ -589,7 +570,7 @@ void ESPUIClass::clearGraph(const uint16_t id, const int clientId)
 			break;
 		}
 
-		AllocateJsonDocument(document, jsonUpdateDocumentSize);
+		JsonDocument document;
 		const JsonObject root = document.to<JsonObject>();
 
 		root[F("type")] = static_cast<int>(ControlType::Graph) + static_cast<int>(ControlType::UpdateOffset);
@@ -610,7 +591,7 @@ void ESPUIClass::addGraphPoint(const uint16_t id, const int nValue, const int cl
 			break;
 		}
 
-		AllocateJsonDocument(document, jsonUpdateDocumentSize);
+		JsonDocument document;
 		const JsonObject root = document.to<JsonObject>();
 
 		root[F("type")] = static_cast<int>(ControlType::GraphPoint);
@@ -696,13 +677,7 @@ void ESPUIClass::beginLITTLEFS(const char *_title, const uint16_t port)
 
 	server->onNotFound([this](AsyncWebServerRequest *request)
 	{
-		if (captivePortal)
-		{
-			request->redirect("/");
-		} else
-		{
-			request->send(404);
-		}
+		request->redirect("/");
 	});
 
 	server->begin();
@@ -798,20 +773,16 @@ void ESPUIClass::begin(const char *_title, const uint16_t port)
 
 	server->onNotFound([this](AsyncWebServerRequest *request)
 	{
-		if (captivePortal)
-		{
-			AsyncResponseStream *response = request->beginResponseStream("text/html");
-			String responseText;
-			responseText.reserve(1024);
-			responseText += F("<!DOCTYPE html><html><head><title>Captive Portal</title></head><body>");
-			responseText += ("<p>If site does not re-direct click here <a href='http://" + WiFi.softAPIP().toString() +
-			                 "'>this link</a></p>");
-			responseText += (R"(</body></html><head><meta http-equiv="Refresh" content="0; URL='http://)" + WiFi.
-			                 softAPIP().toString() + "'\" /></head>");
-			response->write(responseText.c_str(), responseText.length());
-			request->send(response);
-		} else
-			request->send(404);
+		AsyncResponseStream *response = request->beginResponseStream("text/html");
+		String responseText;
+		responseText.reserve(1024);
+		responseText += F("<!DOCTYPE html><html><head><title>Captive Portal</title></head><body>");
+		responseText += ("<p>If site does not re-direct click here <a href='http://" + WiFi.softAPIP().toString() +
+		                 "'>this link</a></p>");
+		responseText += (R"(</body></html><head><meta http-equiv="Refresh" content="0; URL='http://)" + WiFi.
+		                 softAPIP().toString() + "'\" /></head>");
+		response->write(responseText.c_str(), responseText.length());
+		request->send(response);
 		yield();
 	});
 

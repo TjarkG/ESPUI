@@ -88,13 +88,13 @@ public:
 	bool HasCallback() const { return nullptr != callback; }
 
 	bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
-	                    uint32_t &EstimatedUsedSpace,const ESPUIClass &ui) const;
+	                    uint32_t &EstimatedUsedSpace, const ESPUIClass &ui) const;
 
 	void MarshalErrorMessage(const JsonObject &item) const;
 
 	void DeleteControl();
 
-	void onWsEvent(const String &cmd, const String &data,ESPUIClass &ui);
+	void onWsEvent(const String &cmd, const String &data, ESPUIClass &ui);
 
 	bool ToBeDeleted() const { return toDelete; }
 
@@ -111,7 +111,7 @@ private:
 	String OldValue = emptyString;
 
 	// multiplier for converting a typical controller label or value to a Json object
-#define JsonMarshalingRatio 3
+	static constexpr auto JsonMarshalingRatio {3};
 	// Marshaled Control overhead length
-#define JsonMarshaledOverhead 64
+	static constexpr auto JsonMarshaledOverhead {64};
 };

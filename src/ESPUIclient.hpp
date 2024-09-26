@@ -14,6 +14,10 @@ class esp_ui_client final
 	uint32_t NextSyncID = 0;
 	ESPUIClass &ui;
 
+	static constexpr auto sliderContinuous {false};
+	static constexpr auto jsonUpdateDocumentSize {2000};
+	static constexpr auto jsonInitialDocumentSize {8000};
+
 public:
 	enum ClientUpdateType_t
 	{

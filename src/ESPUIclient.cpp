@@ -84,12 +84,12 @@ bool esp_ui_client::CanSend() const
 
 void esp_ui_client::FillInHeader(JsonDocument &document) const
 {
-	document[F("type")] = UI_EXTEND_GUI;
-	document[F("sliderContinuous")] = ui.sliderContinuous;
+	document[F("type")] = ExtendGUI;
+	document[F("sliderContinuous")] = sliderContinuous;
 	document[F("startindex")] = 0;
 	document[F("totalcontrols")] = ui.controlCount;
-	const JsonArray items = AllocateJsonArray(document, F("controls"));
-	const JsonObject titleItem = AllocateJsonObject(items);
+	const JsonArray items = document[F("controls")].to<JsonArray>();
+	const JsonObject titleItem = items.add<JsonObject>();
 	titleItem[F("type")] = static_cast<int>(ControlType::Title);
 	titleItem[F("label")] = ui.ui_title;
 }
@@ -105,10 +105,10 @@ bool esp_ui_client::SendClientNotification(const ClientUpdateType_t value) const
 	if (!CanSend())
 		return false;
 
-	AllocateJsonDocument(document, ui.jsonUpdateDocumentSize);
+	JsonDocument document;
 	FillInHeader(document);
 	if (ReloadNeeded == value)
-		document["type"] = static_cast<int>(UI_RELOAD);
+		document["type"] = static_cast<int>(Reload);
 	// dont send any controls
 
 	const bool Response = SendJsonDocToWebSocket(document);
@@ -195,7 +195,7 @@ uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &root
 {
 	xSemaphoreTake(ui.ControlsSemaphore, portMAX_DELAY);
 
-	const uint32_t MaxMarshaledJsonSize = !InUpdateMode ? ui.jsonInitialDocumentSize : ui.jsonUpdateDocumentSize;
+	const uint32_t MaxMarshaledJsonSize = !InUpdateMode ? jsonInitialDocumentSize : jsonUpdateDocumentSize;
 	uint32_t EstimatedUsedMarshaledJsonSize = 0;
 
 	// Follow the list until control points to the startindex node
@@ -210,7 +210,7 @@ uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &root
 		// this is actually a fragment or directed update request
 		// parse the string we got from the UI and try to update that specific
 		// control.
-		AllocateJsonDocument(FragmentRequest, FragmentRequestString.length() * 3);
+		JsonDocument FragmentRequest;
 		const size_t FragmentRequestStartOffset = value.indexOf("{");
 		const DeserializationError error = deserializeJson(FragmentRequest,
 		                                                   value.substring(FragmentRequestStartOffset));
@@ -307,7 +307,7 @@ uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &root
 			}
 		}
 
-		JsonObject item = AllocateJsonObject(items);
+		auto item = items.add<JsonObject>();
 		elementCount++;
 		const uint32_t RemainingSpace = MaxMarshaledJsonSize - EstimatedUsedMarshaledJsonSize - 100;
 		uint32_t SpaceUsedByMarshaledControl = 0;
@@ -319,13 +319,12 @@ uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &root
 		EstimatedUsedMarshaledJsonSize += SpaceUsedByMarshaledControl;
 
 		// did the control get added to the doc?
-		if (0 == SpaceUsedByMarshaledControl ||
-		    (ui.jsonChunkNumberMax > 0 && elementCount % ui.jsonChunkNumberMax == 0))
+		if (0 == SpaceUsedByMarshaledControl)
 		{
 			if (1 == elementCount)
 			{
 				rootDoc.clear();
-				item = AllocateJsonObject(items);
+				item = items.add<JsonObject>();
 				control->MarshalErrorMessage(item);
 				elementCount = 0;
 			} else
@@ -374,14 +373,14 @@ bool esp_ui_client::SendControlsToClient(const uint16_t start_idx, const ClientU
 	if (start_idx >= ui.controlCount && emptyString.equals(FragmentRequest))
 		return true;
 
-	AllocateJsonDocument(document, ui.jsonInitialDocumentSize);
+	JsonDocument document;
 	FillInHeader(document);
 	document[F("startindex")] = start_idx;
 	document[F("totalcontrols")] = 0xFFFF; // ui.controlCount;
 
 	if (0 == start_idx)
 	{
-		document["type"] = (RebuildNeeded == TransferMode) ? UI_INITIAL_GUI : UI_EXTEND_GUI;
+		document["type"] = (RebuildNeeded == TransferMode) ? MessageTypes::InitialGui : MessageTypes::ExtendGUI;
 		CurrentSyncID = NextSyncID;
 		NextSyncID = ui.GetNextControlChangeId();
 	}
