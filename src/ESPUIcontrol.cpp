@@ -1,6 +1,6 @@
 #include <utility>
 
-#include "ESPUI.h"
+#include "ESPUI.hpp"
 
 static uint16_t idCounter = 0;
 static const String ControlError = "*** ESPUI ERROR: Could not transfer control ***";

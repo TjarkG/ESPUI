@@ -1,11 +1,11 @@
-#include "ESPUIclient.h"
-#include <ESPUI.h>
-#include "ESPUIcontrol.h"
+#include "ESPUIclient.hpp"
+#include "ESPUI.hpp"
+#include "ESPUIcontrol.hpp"
 
 // JSONSlave:
 // helper to process exact JSON serialization size
 // it takes ~2ms on esp8266 and avoid large String reallocation which is really worth the cost
-class JSONSlave : public Print
+class JSONSlave final : public Print
 {
 public:
 	size_t write(uint8_t c) override
@@ -128,26 +128,6 @@ bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t 
 
 	switch (type)
 	{
-#if defined(DEBUG_ESPUI)
-		case WS_EVT_PONG:
-		{
-            if (ui.verbosity)
-            {
-                Serial.println(F("esp_ui_client::OnWsEvent:WS_EVT_PONG"));
-            }
-			break;
-		}
-
-		case WS_EVT_ERROR:
-		{
-            if (ui.verbosity)
-            {
-                Serial.println(F("esp_ui_client::OnWsEvent:WS_EVT_ERROR"));
-            }
-			break;
-		}
-#endif
-
 		case WS_EVT_CONNECT:
 		{
 			NotifyClient(RebuildNeeded);
@@ -164,19 +144,9 @@ bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t 
 				msg += static_cast<char>(data[i]);
 			}
 
-			String cmd = msg.substring(0, msg.indexOf(":"));
-			String value = msg.substring(cmd.length() + 1, msg.lastIndexOf(':'));
-			uint16_t id = msg.substring(msg.lastIndexOf(':') + 1).toInt();
-
-#if defined(DEBUG_ESPUI)
-                if (ui.verbosity >= Verbosity::VerboseJSON)
-                {
-                    Serial.println(String(F("  WS msg: ")) + msg);
-                    Serial.println(String(F("  WS cmd: ")) + cmd);
-                    Serial.println(String(F("   WS id: ")) + String(id));
-                    Serial.println(String(F("WS value: ")) + String(value));
-                }
-#endif
+			const String cmd = msg.substring(0, msg.indexOf(":"));
+			const String value = msg.substring(cmd.length() + 1, msg.lastIndexOf(':'));
+			const uint16_t id = msg.substring(msg.lastIndexOf(':') + 1).toInt();
 
 			if (cmd.equals(F("uiok")))
 			{

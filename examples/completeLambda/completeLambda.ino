@@ -374,7 +374,7 @@ void setUpUI() {
 
 
 //Most elements in this test UI are assigned this generic callback which prints some
-//basic information. Event types are defined in ESPUI.h
+//basic information. Event types are defined in ESPUI.hpp
 void generalCallback(Control *sender, int type) {
 	Serial.print("CB: id(");
 	Serial.print(sender->id);
@@ -387,7 +387,7 @@ void generalCallback(Control *sender, int type) {
 }
 
 // Most elements in this test UI are assigned this generic callback which prints some
-// basic information. Event types are defined in ESPUI.h
+// basic information. Event types are defined in ESPUI.hpp
 // The extended param can be used to pass additional information
 void paramCallback(Control* sender, int type, int param)
 {

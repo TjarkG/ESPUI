@@ -27,8 +27,8 @@
 #include <map>
 #include <ESPAsyncWebServer.h>
 
-#include "ESPUIcontrol.h"
-#include "ESPUIclient.h"
+#include "ESPUIcontrol.hpp"
+#include "ESPUIclient.hpp"
 
 #include <AsyncTCP.h>
 #include "WiFi.h"

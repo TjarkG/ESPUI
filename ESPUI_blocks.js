@@ -27,7 +27,7 @@ Blockly.Arduino['espui'] = function(block) {
 	var wifi_option = block.getFieldValue('wifi_option');
 	var ui_elements = Blockly.Arduino.statementToCode(block, 'ui_elements');
 	Blockly.Arduino.definitions_['define_wifi_h'] = '#include <WiFi.h>';
-	Blockly.Arduino.definitions_['define_espui_h'] = '#include <ESPUI.h>';
+	Blockly.Arduino.definitions_['define_espui_h'] = '#include <ESPUI.hpp>';
 	Blockly.Arduino.setups_['setup_espui'] = '\n';
 	if(wifi_option){
 		Blockly.Arduino.setups_['setup_espui'] +=

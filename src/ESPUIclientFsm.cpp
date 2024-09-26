@@ -1,5 +1,5 @@
-#include "ESPUI.h"
-#include "ESPUIclient.h"
+#include "ESPUI.hpp"
+#include "ESPUIclient.hpp"
 
 // FSM definitions
 void fsm_EspuiClient_state::Init()
