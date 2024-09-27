@@ -131,8 +131,6 @@ void ESPUIClass::onWsEvent(
 	AsyncWebSocket *server, AsyncWebSocketClient *client, const AwsEventType type, void *arg, const uint8_t *data,
 	const size_t len)
 {
-	RemoveToBeDeletedControls();
-
 	if (WS_EVT_DISCONNECT == type)
 	{
 		if (MapOfClients.end() != MapOfClients.find(client->id()))
@@ -155,41 +153,31 @@ void ESPUIClass::onWsEvent(
 	}
 }
 
-std::shared_ptr<Control> ESPUIClass::addControl(
-	const ControlType type, const char *label, const String &value, const ControlColor color,
-	const std::shared_ptr<Control>& parentControl)
+std::shared_ptr<Control> ESPUIClass::addControl(const Control &control)
 {
-	auto control = std::make_shared<Control>(type, label, nullptr, value, color, true, parentControl);
-
 	xSemaphoreTake(ControlsSemaphore, portMAX_DELAY);
 
-	if (controls == nullptr)
-	{
-		controls = control;
-	} else
-	{
-		auto iterator = controls;
-
-		while (iterator->next != nullptr)
-		{
-			iterator = iterator->next;
-		}
-
-		iterator->next = control;
-	}
-
-	controlCount++;
+	controls.push_back(std::make_shared<Control>(control));
 
 	xSemaphoreGive(ControlsSemaphore);
 
 	NotifyClients(esp_ui_client::ClientUpdateType_t::RebuildNeeded);
 
-	return control;
+	return controls.back();
+}
+
+std::shared_ptr<Control> ESPUIClass::addControl(
+	const ControlType type, const char *label, const String &value, const ControlColor color,
+	const std::shared_ptr<Control> &parentControl)
+{
+	const Control control = {type, label, nullptr, value, color, true, parentControl};
+
+	return addControl(control);
 }
 
 std::shared_ptr<Control> ESPUIClass::addControl(const ControlType type, const char *label, const String &value,
                                                 const ControlColor color,
-                                                const std::shared_ptr<Control>& parentControl,
+                                                const std::shared_ptr<Control> &parentControl,
                                                 const std::function<void(Control *, int)> &callback)
 {
 	auto control = addControl(type, label, value, color, parentControl);
@@ -198,10 +186,12 @@ std::shared_ptr<Control> ESPUIClass::addControl(const ControlType type, const ch
 	return control;
 }
 
-void ESPUIClass::removeControl(Control &control, const bool force_rebuild_ui)
+void ESPUIClass::removeControl(const std::shared_ptr<Control> &control, const bool force_rebuild_ui)
 {
-	control.DeleteControl();
-	controlCount--;
+	xSemaphoreTake(ControlsSemaphore, portMAX_DELAY);
+	const auto it = std::find(controls.begin(), controls.end(), control);
+	controls.erase(it);
+	xSemaphoreGive(ControlsSemaphore);
 
 	if (force_rebuild_ui)
 	{
@@ -210,37 +200,6 @@ void ESPUIClass::removeControl(Control &control, const bool force_rebuild_ui)
 	{
 		NotifyClients(esp_ui_client::ClientUpdateType_t::RebuildNeeded);
 	}
-}
-
-void ESPUIClass::RemoveToBeDeletedControls()
-{
-	xSemaphoreTake(ControlsSemaphore, portMAX_DELAY);
-
-	std::shared_ptr<Control> PreviousControl = nullptr;
-	auto CurrentControl = controls;
-
-	while (nullptr != CurrentControl)
-	{
-		const auto NextControl = CurrentControl->next;
-		if (CurrentControl->ToBeDeleted())
-		{
-			if (CurrentControl == controls)
-			{
-				// this is the root control
-				controls = NextControl;
-			} else if (PreviousControl != nullptr)
-			{
-				PreviousControl->next = NextControl;
-			}
-			CurrentControl = NextControl;
-		} else
-		{
-			PreviousControl = CurrentControl;
-			CurrentControl = NextControl;
-		}
-	}
-
-	xSemaphoreGive(ControlsSemaphore);
 }
 
 std::shared_ptr<Control> ESPUIClass::getControl(const uint16_t id) const
@@ -256,23 +215,12 @@ std::shared_ptr<Control> ESPUIClass::getControl(const uint16_t id) const
 //          at the time it is called. Make sure YOU locked it :)
 std::shared_ptr<Control> ESPUIClass::getControlNoLock(const uint16_t id) const
 {
-	std::shared_ptr<Control> Response = nullptr;
-	std::shared_ptr<Control> control = controls;
+	const auto it = std::find_if(controls.begin(), controls.end(),
+	                             [id](const std::shared_ptr<Control> &i) { return i->id == id; });
+	if (it == controls.end())
+		return nullptr;
 
-	while (nullptr != control)
-	{
-		if (control->id == id)
-		{
-			if (!control->ToBeDeleted())
-			{
-				Response = control;
-			}
-			break;
-		}
-		control = control->next;
-	}
-
-	return Response;
+	return *it;
 }
 
 void ESPUIClass::updateControl(Control &control, int)

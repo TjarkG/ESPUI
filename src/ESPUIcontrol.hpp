@@ -69,7 +69,6 @@ public:
 	String panelStyle;
 	String elementStyle;
 	String inputType;
-	std::shared_ptr<Control> next {};
 
 	static constexpr uint16_t noParent = 0xffff;
 
@@ -92,21 +91,16 @@ public:
 
 	void MarshalErrorMessage(const JsonObject &item) const;
 
-	void DeleteControl();
-
 	void onWsEvent(const String &cmd, const String &data, ESPUIClass &ui);
-
-	bool ToBeDeleted() const { return toDelete; }
 
 	bool NeedsSync(const uint32_t lastControlChangeID) const
 	{
-		return (false == toDelete) && (lastControlChangeID < ControlChangeID);
+		return (lastControlChangeID < ControlChangeID);
 	}
 
 	void SetControlChangedId(const uint32_t value) { ControlChangeID = value; }
 
 private:
-	bool toDelete = false;
 	uint32_t ControlChangeID = 0;
 	String OldValue = emptyString;
 

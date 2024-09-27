@@ -57,7 +57,7 @@ protected:
 
 	void FillInHeader(JsonDocument &document) const;
 
-	uint32_t prepareJSONChunk(uint16_t startindex, JsonDocument &rootDoc, bool InUpdateMode, const String &value) const;
+	uint32_t prepareJSONChunk(JsonDocument &rootDoc, bool InUpdateMode, const String &value) const;
 
 	bool SendControlsToClient(uint16_t start_idx, ClientUpdateType_t TransferMode, const String &FragmentRequest);
 

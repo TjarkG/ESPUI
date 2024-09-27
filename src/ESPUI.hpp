@@ -61,14 +61,13 @@ protected:
 
 	// Store UI Title and Header Name
 	const char *ui_title = "ESPUI";
-	std::shared_ptr<Control> controls {};
 
 	AsyncWebServer *server {};
 	AsyncWebSocket *ws {};
 
-	uint16_t controlCount = 0;
-
 	std::map<uint32_t, esp_ui_client *> MapOfClients;
+
+	std::vector<std::shared_ptr<Control>> controls;
 
 	uint32_t ControlChangeID = 0;
 
@@ -81,8 +80,6 @@ protected:
 	void NotifyClient(uint32_t WsClientId, esp_ui_client::ClientUpdateType_t newState);
 
 	bool SendJsonDocToWebSocket(const JsonDocument &document, uint16_t clientId);
-
-	void RemoveToBeDeletedControls();
 
 public:
 	ESPUIClass()
@@ -112,6 +109,8 @@ public:
 
 	void writeFile(const char *path, const char *data) const;
 
+	std::shared_ptr<Control> addControl(const Control& control);
+
 	std::shared_ptr<Control> addControl(ControlType type, const char *label, const String &value = "",
 	                                    ControlColor color = ControlColor::Turquoise,
 	                                    const std::shared_ptr<Control>& parentControl = nullptr);
@@ -120,7 +119,7 @@ public:
 	                                    const std::shared_ptr<Control>& parentControl,
 	                                    const std::function<void(Control *, int)> &callback);
 
-	void removeControl(Control &control, bool force_rebuild_ui = false);
+	void removeControl(const std::shared_ptr<Control>& control, bool force_rebuild_ui = false);
 
 	std::shared_ptr<Control> getControl(uint16_t id) const;
 

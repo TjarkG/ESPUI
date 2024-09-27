@@ -87,7 +87,7 @@ void esp_ui_client::FillInHeader(JsonDocument &document) const
 	document[F("type")] = ExtendGUI;
 	document[F("sliderContinuous")] = sliderContinuous;
 	document[F("startindex")] = 0;
-	document[F("totalcontrols")] = ui.controlCount;
+	document[F("totalcontrols")] = ui.controls.size();
 	const JsonArray items = document[F("controls")].to<JsonArray>();
 	const JsonObject titleItem = items.add<JsonObject>();
 	titleItem[F("type")] = static_cast<int>(ControlType::Title);
@@ -190,8 +190,7 @@ Prepare a chunk of elements as a single JSON string. If the allowed number of el
 number this will represent the entire UI. More likely, it will represent a small section of the UI to be sent. The
 client will acknowledge receipt by requesting the next chunk.
  */
-uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &rootDoc, const bool InUpdateMode,
-                                         const String &value) const
+uint32_t esp_ui_client::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpdateMode, const String &value) const
 {
 	xSemaphoreTake(ui.ControlsSemaphore, portMAX_DELAY);
 
@@ -199,11 +198,7 @@ uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &root
 	uint32_t EstimatedUsedMarshaledJsonSize = 0;
 
 	// Follow the list until control points to the startindex node
-	std::shared_ptr<Control> control = ui.controls;
-	uint32_t currentIndex = 0;
-	uint32_t DataOffset = 0;
 	const JsonArray items = rootDoc[F("controls")];
-	bool SingleControl = false;
 
 	if (!emptyString.equals(value))
 	{
@@ -212,12 +207,11 @@ uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &root
 		// control.
 		JsonDocument FragmentRequest;
 		const size_t FragmentRequestStartOffset = value.indexOf("{");
-		const DeserializationError error = deserializeJson(FragmentRequest,
-		                                                   value.substring(FragmentRequestStartOffset));
+		const DeserializationError error =
+				deserializeJson(FragmentRequest, value.substring(FragmentRequestStartOffset));
 		if (DeserializationError::Ok != error)
 		{
-			Serial.println(
-				F("ERROR:prepareJSONChunk:Fragmentation:Could not extract json from the fragment request"));
+			Serial.println(F("ERROR:prepareJSONChunk:Fragmentation:Could not extract json from the fragment request"));
 			xSemaphoreGive(ui.ControlsSemaphore);
 			return 0;
 		}
@@ -236,8 +230,8 @@ uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &root
 			xSemaphoreGive(ui.ControlsSemaphore);
 			return 0;
 		}
-		DataOffset = FragmentRequest[F("offset")].as<uint32_t>();
-		control = ui.getControlNoLock(ControlId);
+		const auto DataOffset = FragmentRequest[F("offset")].as<uint32_t>();
+		const auto control = ui.getControlNoLock(ControlId);
 		if (nullptr == control)
 		{
 			Serial.println(
@@ -247,99 +241,57 @@ uint32_t esp_ui_client::prepareJSONChunk(uint16_t startindex, JsonDocument &root
 			return 0;
 		}
 
-		currentIndex = 1;
-		startindex = 0;
-		SingleControl = true;
-	}
+		//Send Update for a Single Element
+		auto item = items.add<JsonObject>();
+		const uint32_t RemainingSpace = MaxMarshaledJsonSize - 100;
+		uint32_t SpaceUsedByMarshaledControl = 0;
+		control->MarshalControl(item, InUpdateMode, DataOffset, RemainingSpace, SpaceUsedByMarshaledControl, ui);
 
-	// find a control to send
-	while (startindex > currentIndex && nullptr != control)
-	{
-		// only count active controls
-		if (!control->ToBeDeleted())
-		{
-			if (InUpdateMode)
-			{
-				// In update mode we only count the controls that have been updated.
-				if (control->NeedsSync(CurrentSyncID))
-				{
-					++currentIndex;
-				}
-			} else
-			{
-				// not in update mode. Count all active controls
-				++currentIndex;
-			}
-		}
-		control = control->next;
-	}
-
-	// any controls left to be processed?
-	if (nullptr == control)
-	{
+		rootDoc.clear();
+		item = items.add<JsonObject>();
+		control->MarshalErrorMessage(item);
 		xSemaphoreGive(ui.ControlsSemaphore);
-		return 0;
+		return 1;
 	}
 
 	// keep track of the number of elements we have serialised into this
 	// message. Overflow is detected and handled later in this loop
 	// and needs an index to the last item added.
 	int elementCount = 0;
-	while (nullptr != control)
+	for (const auto &control: ui.controls)
 	{
-		// skip deleted controls or controls that have not been updated
-		if (control->ToBeDeleted() && !SingleControl)
-		{
-			control = control->next;
+		// control has not been updated. Skip it
+		if (InUpdateMode && !control->NeedsSync(CurrentSyncID))
 			continue;
-		}
-
-		if (InUpdateMode && !SingleControl)
-		{
-			if (control->NeedsSync(CurrentSyncID))
-			{
-				// dont skip this control
-			} else
-			{
-				// control has not been updated. Skip it
-				control = control->next;
-				continue;
-			}
-		}
 
 		auto item = items.add<JsonObject>();
 		elementCount++;
 		const uint32_t RemainingSpace = MaxMarshaledJsonSize - EstimatedUsedMarshaledJsonSize - 100;
 		uint32_t SpaceUsedByMarshaledControl = 0;
-		const bool ControlIsFragmented = control->MarshalControl(item,
-		                                                         InUpdateMode,
-		                                                         DataOffset,
-		                                                         RemainingSpace,
+		const bool ControlIsFragmented = control->MarshalControl(item, InUpdateMode, 0, RemainingSpace,
 		                                                         SpaceUsedByMarshaledControl, ui);
 		EstimatedUsedMarshaledJsonSize += SpaceUsedByMarshaledControl;
 
 		// did the control get added to the doc?
-		if (0 == SpaceUsedByMarshaledControl)
+		if (SpaceUsedByMarshaledControl == 0 && elementCount == 1)
 		{
-			if (1 == elementCount)
-			{
-				rootDoc.clear();
-				item = items.add<JsonObject>();
-				control->MarshalErrorMessage(item);
-				elementCount = 0;
-			} else
-			{
-				items.remove(elementCount);
-				--elementCount;
-			}
-			// exit the loop
-			control = nullptr;
-		} else if (SingleControl || ControlIsFragmented || MaxMarshaledJsonSize < EstimatedUsedMarshaledJsonSize +
-		           100)
-			control = nullptr;
-		else
-			control = control->next;
-	} // end while (control != nullptr)
+			rootDoc.clear();
+			item = items.add<JsonObject>();
+			control->MarshalErrorMessage(item);
+			elementCount = 0;
+			break;
+		}
+
+		if (SpaceUsedByMarshaledControl == 0)
+		{
+			items.remove(elementCount);
+			--elementCount;
+			break;
+		}
+
+		if (ControlIsFragmented || MaxMarshaledJsonSize < EstimatedUsedMarshaledJsonSize + 100)
+			break;
+	}
 
 	xSemaphoreGive(ui.ControlsSemaphore);
 	return elementCount;
@@ -370,7 +322,7 @@ bool esp_ui_client::SendControlsToClient(const uint16_t start_idx, const ClientU
 {
 	if (!CanSend())
 		return false;
-	if (start_idx >= ui.controlCount && emptyString.equals(FragmentRequest))
+	if (start_idx >= ui.controls.size() && emptyString.equals(FragmentRequest))
 		return true;
 
 	JsonDocument document;
@@ -384,7 +336,7 @@ bool esp_ui_client::SendControlsToClient(const uint16_t start_idx, const ClientU
 		CurrentSyncID = NextSyncID;
 		NextSyncID = ui.GetNextControlChangeId();
 	}
-	if (prepareJSONChunk(start_idx, document, UpdateNeeded == TransferMode, FragmentRequest))
+	if (prepareJSONChunk(document, UpdateNeeded == TransferMode, FragmentRequest))
 	{
 		(void) SendJsonDocToWebSocket(document);
 		return false;

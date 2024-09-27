@@ -6,15 +6,14 @@ static uint16_t idCounter = 0;
 static const String ControlError = "*** ESPUI ERROR: Could not transfer control ***";
 
 Control::Control(ControlType type, const char *label, std::function<void(Control *, int)> callback,
-                 String value, ControlColor color, bool visible, const std::shared_ptr<Control> &parentControl) :
+                 String value, ControlColor color, bool visible, const std::shared_ptr<Control> &parentControl):
 	type(type),
 	label(label),
 	callback(std::move(callback)),
 	value(std::move(value)),
 	color(color),
-	parentControl(parentControl),
 	visible(visible),
-	next(nullptr)
+	parentControl(parentControl)
 {
 	id = ++idCounter;
 	ControlChangeID = 1;
@@ -29,7 +28,6 @@ Control::Control(const Control &Control) :
 	color(Control.color),
 	visible(Control.visible),
 	parentControl(Control.parentControl),
-	next(Control.next),
 	ControlChangeID(Control.ControlChangeID) {}
 
 void Control::SendCallback(const int type)
@@ -38,12 +36,6 @@ void Control::SendCallback(const int type)
 	{
 		callback(this, type);
 	}
-}
-
-void Control::DeleteControl()
-{
-	toDelete = true;
-	callback = nullptr;
 }
 
 bool Control::MarshalControl(const JsonObject &_item,
