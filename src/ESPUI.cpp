@@ -4,14 +4,14 @@
 
 #include <ESPAsyncWebServer.h>
 
-#include "dataControlsJS.h"
-#include "dataGraphJS.h"
-#include "dataIndexHTML.h"
-#include "dataNormalizeCSS.h"
-#include "dataSliderJS.h"
-#include "dataStyleCSS.h"
-#include "dataTabbedcontentJS.h"
-#include "dataZeptoJS.h"
+#include "data/ControlsJS.h"
+#include "data/GraphJS.h"
+#include "data/IndexHTML.h"
+#include "data/NormalizeCSS.h"
+#include "data/SliderJS.h"
+#include "data/StyleCSS.h"
+#include "data/TabbedcontentJS.h"
+#include "data/ZeptoJS.h"
 
 static String heapInfo(const __FlashStringHelper *mode)
 {

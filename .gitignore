@@ -34,6 +34,8 @@ Temporary Items
 *~
 *.bak
 
-
 .vscode/
 .idea
+
+#automatically generated headers
+src/data
