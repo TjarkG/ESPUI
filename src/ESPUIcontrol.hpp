@@ -87,7 +87,7 @@ public:
 	bool HasCallback() const { return nullptr != callback; }
 
 	bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
-	                    uint32_t &EstimatedUsedSpace, const ESPUIClass &ui) const;
+	                    uint32_t &EstimatedUsedSpace) const;
 
 	void MarshalErrorMessage(const JsonObject &item) const;
 

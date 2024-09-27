@@ -242,7 +242,7 @@ uint32_t esp_ui_client::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpd
 		auto item = items.add<JsonObject>();
 		const uint32_t RemainingSpace = MaxMarshaledJsonSize - 100;
 		uint32_t SpaceUsedByMarshaledControl = 0;
-		control->MarshalControl(item, InUpdateMode, DataOffset, RemainingSpace, SpaceUsedByMarshaledControl, ui);
+		control->MarshalControl(item, InUpdateMode, DataOffset, RemainingSpace, SpaceUsedByMarshaledControl);
 
 		rootDoc.clear();
 		item = items.add<JsonObject>();
@@ -266,7 +266,7 @@ uint32_t esp_ui_client::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpd
 		const uint32_t RemainingSpace = MaxMarshaledJsonSize - EstimatedUsedMarshaledJsonSize - 100;
 		uint32_t SpaceUsedByMarshaledControl = 0;
 		const bool ControlIsFragmented = control->MarshalControl(item, InUpdateMode, 0, RemainingSpace,
-		                                                         SpaceUsedByMarshaledControl, ui);
+		                                                         SpaceUsedByMarshaledControl);
 		EstimatedUsedMarshaledJsonSize += SpaceUsedByMarshaledControl;
 
 		// did the control get added to the doc?
@@ -325,7 +325,7 @@ bool esp_ui_client::SendControlsToClient(const uint16_t start_idx, const ClientU
 	JsonDocument document;
 	FillInHeader(document);
 	document[F("startindex")] = start_idx;
-	document[F("totalcontrols")] = 0xFFFF; // ui.controlCount;
+	document[F("totalcontrols")] = 0xFFFF;
 
 	if (0 == start_idx)
 	{

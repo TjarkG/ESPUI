@@ -33,17 +33,14 @@ Control::Control(const Control &Control) :
 void Control::SendCallback(const int type)
 {
 	if (callback)
-	{
 		callback(this, type);
-	}
 }
 
 bool Control::MarshalControl(const JsonObject &_item,
                              const bool refresh,
-                             const uint32_t StartingOffset,
-                             const uint32_t AvailMarshaledLength,
-                             uint32_t &EstimatedMarshaledLength,
-                             const ESPUIClass &ui) const
+                             const uint32_t DataOffset,
+                             const uint32_t MaxLength,
+                             uint32_t &EstimatedUsedSpace) const
 {
 	// this code assumes MaxMarshaledLength > JsonMarshalingRatio
 
@@ -54,33 +51,33 @@ bool Control::MarshalControl(const JsonObject &_item,
 	// how much space do we expect to use?
 	const uint32_t LabelMarshaledLength = strlen(label) * JsonMarshalingRatio;
 	const uint32_t MinimumMarshaledLength = LabelMarshaledLength + JsonMarshaledOverhead;
-	const uint32_t SpaceForMarshaledValue = AvailMarshaledLength - MinimumMarshaledLength;
+	const uint32_t SpaceForMarshaledValue = MaxLength - MinimumMarshaledLength;
 
 	// will the item fit in the remaining space? Fragment if not
-	if (AvailMarshaledLength < MinimumMarshaledLength)
+	if (MaxLength < MinimumMarshaledLength)
 	{
-		EstimatedMarshaledLength = 0;
+		EstimatedUsedSpace = 0;
 		return false;
 	}
 
 	const uint32_t MaxValueLength = SpaceForMarshaledValue / JsonMarshalingRatio;
 
-	const uint32_t ValueLenToSend = min(value.length() - StartingOffset, MaxValueLength);
+	const uint32_t ValueLenToSend = min(value.length() - DataOffset, MaxValueLength);
 
 	const uint32_t AdjustedMarshaledLength = ValueLenToSend * JsonMarshalingRatio + MinimumMarshaledLength;
 
 	const bool NeedToFragment = ValueLenToSend < value.length();
 
-	if (AdjustedMarshaledLength > AvailMarshaledLength && 0 != ValueLenToSend)
+	if (AdjustedMarshaledLength > MaxLength && 0 != ValueLenToSend)
 	{
-		EstimatedMarshaledLength = 0;
+		EstimatedUsedSpace = 0;
 		return false;
 	}
 
-	EstimatedMarshaledLength = AdjustedMarshaledLength;
+	EstimatedUsedSpace = AdjustedMarshaledLength;
 
 	// are we fragmenting?
-	if (NeedToFragment || StartingOffset)
+	if (NeedToFragment || DataOffset)
 	{
 		// indicate that no additional controls should be sent
 		ControlIsFragmented = true;
@@ -89,7 +86,7 @@ bool Control::MarshalControl(const JsonObject &_item,
 		_item[F("type")] = static_cast<uint32_t>(ControlType::Fragment);
 		_item[F("id")] = id;
 
-		_item[F("offset")] = StartingOffset;
+		_item[F("offset")] = DataOffset;
 		_item[F("length")] = ValueLenToSend;
 		_item[F("total")] = value.length();
 		item[F("control")] = _item;
@@ -106,9 +103,9 @@ bool Control::MarshalControl(const JsonObject &_item,
 	}
 
 	item[F("label")] = label;
-	item[F("value")] = (ControlType::Password == type)
+	item[F("value")] = ControlType::Password == type
 		                   ? F("--------")
-		                   : value.substring(StartingOffset, StartingOffset + ValueLenToSend);
+		                   : value.substring(DataOffset, DataOffset + ValueLenToSend);
 	item[F("visible")] = visible;
 	item[F("color")] = static_cast<int>(color);
 	item[F("enabled")] = enabled;
@@ -119,9 +116,7 @@ bool Control::MarshalControl(const JsonObject &_item,
 	if (wide == true) { item[F("wide")] = true; }
 	if (vertical == true) { item[F("vertical")] = true; }
 	if (parentControl)
-	{
 		item[F("parentControl")] = String(parentControl->id);
-	}
 
 	// special case for selects: to preselect an option, you have to add
 	// "selected" to <option>
@@ -165,90 +160,58 @@ void Control::onWsEvent(const String &cmd, const String &data, ESPUIClass &ui)
 		return;
 
 	if (cmd.equals(F("bdown")))
-	{
 		SendCallback(B_DOWN);
-		return;
-	}
-
-	if (cmd.equals(F("bup")))
-	{
+	else if (cmd.equals(F("bup")))
 		SendCallback(B_UP);
-		return;
-	}
-
-	if (cmd.equals(F("pfdown")))
-	{
+	else if (cmd.equals(F("pfdown")))
 		SendCallback(P_FOR_DOWN);
-		return;
-	}
-
-	if (cmd.equals(F("pfup")))
-	{
+	else if (cmd.equals(F("pfup")))
 		SendCallback(P_FOR_UP);
-		return;
-	}
-
-	if (cmd.equals(F("pldown")))
-	{
+	else if (cmd.equals(F("pldown")))
 		SendCallback(P_LEFT_DOWN);
-		return;
-	} else if (cmd.equals(F("plup")))
-	{
+	else if (cmd.equals(F("plup")))
 		SendCallback(P_LEFT_UP);
-	} else if (cmd.equals(F("prdown")))
-	{
+	else if (cmd.equals(F("prdown")))
 		SendCallback(P_RIGHT_DOWN);
-	} else if (cmd.equals(F("prup")))
-	{
+	else if (cmd.equals(F("prup")))
 		SendCallback(P_RIGHT_UP);
-	} else if (cmd.equals(F("pbdown")))
-	{
+	else if (cmd.equals(F("pbdown")))
 		SendCallback(P_BACK_DOWN);
-	} else if (cmd.equals(F("pbup")))
-	{
+	else if (cmd.equals(F("pbup")))
 		SendCallback(P_BACK_UP);
-	} else if (cmd.equals(F("pcdown")))
-	{
+	else if (cmd.equals(F("pcdown")))
 		SendCallback(P_CENTER_DOWN);
-	} else if (cmd.equals(F("pcup")))
-	{
+	else if (cmd.equals(F("pcup")))
 		SendCallback(P_CENTER_UP);
-	} else if (cmd.equals(F("sactive")))
+	else if (cmd.equals(F("sactive")))
 	{
 		value = "1";
 		SendCallback(S_ACTIVE);
 	} else if (cmd.equals(F("sinactive")))
 	{
 		value = "0";
-		// updateControl(c, client->id());
 		SendCallback(S_INACTIVE);
 	} else if (cmd.equals(F("slvalue")))
 	{
 		value = data;
-		// updateControl(c, client->id());
 		SendCallback(SL_VALUE);
 	} else if (cmd.equals(F("nvalue")))
 	{
 		value = data;
-		// updateControl(c, client->id());
 		SendCallback(N_VALUE);
 	} else if (cmd.equals(F("tvalue")))
 	{
 		value = data;
-		// updateControl(c, client->id());
 		SendCallback(T_VALUE);
 	} else if (cmd.equals(F("tabvalue")))
-	{
 		SendCallback(0);
-	} else if (cmd.equals(F("svalue")))
+	else if (cmd.equals(F("svalue")))
 	{
 		value = data;
-		// updateControl(c, client->id());
 		SendCallback(S_VALUE);
 	} else if (cmd.equals(F("time")))
 	{
 		value = data;
-		// updateControl(c, client->id());
 		SendCallback(TM_VALUE);
 	}
 }
