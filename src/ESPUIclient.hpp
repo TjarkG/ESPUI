@@ -3,10 +3,26 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
-#include "ESPUIclientFsm.hpp"
-
 
 class ESPUIClass;
+
+enum class ClientUpdateType_t
+{
+	// this is an ordered list. highest number is the highest priority
+	Synchronized = 0,
+	UpdateNeeded = 1,
+	RebuildNeeded = 2,
+	ReloadNeeded = 3,
+};
+
+enum class ClientState_t
+{
+	// this is an ordered list. highest number is the highest priority
+	Idle = 0,
+	Sending = 1,
+	Rebuilding = 2,
+	Reloading = 3,
+};
 
 class esp_ui_client final
 {
@@ -18,40 +34,17 @@ class esp_ui_client final
 	static constexpr auto jsonUpdateDocumentSize {2000};
 	static constexpr auto jsonInitialDocumentSize {8000};
 
-public:
-	enum ClientUpdateType_t
-	{
-		// this is an ordered list. highest number is the highest priority
-		Synchronized = 0,
-		UpdateNeeded = 1,
-		RebuildNeeded = 2,
-		ReloadNeeded = 3,
-	};
-
-protected:
-	// bool HasBeenNotified      = false;  // Set when a notification has been sent, and we are waiting for a reply
-	// bool DelayedNotification  = false;  // set if a delayed notification is needed
-
 	ClientUpdateType_t ClientUpdateType = ClientUpdateType_t::RebuildNeeded;
 
 	AsyncWebSocketClient *client = nullptr;
 
-	friend class fsm_EspuiClient_state_Idle;
-	friend class fsm_EspuiClient_state_SendingUpdate;
-	friend class fsm_EspuiClient_state_Rebuilding;
-	friend class fsm_EspuiClient_state_WaitForAck;
-	friend class fsm_EspuiClient_state_Reloading;
-	friend class fsm_EspuiClient_state;
+	ClientState_t ClientState = ClientState_t::Idle;
 
-	fsm_EspuiClient_state_Idle fsm_EspuiClient_state_Idle_imp;
-	fsm_EspuiClient_state_SendingUpdate fsm_EspuiClient_state_SendingUpdate_imp;
-	fsm_EspuiClient_state_Rebuilding fsm_EspuiClient_state_Rebuilding_imp;
-	fsm_EspuiClient_state_Reloading fsm_EspuiClient_state_Reloading_imp;
-	fsm_EspuiClient_state *pCurrentFsmState = &fsm_EspuiClient_state_Idle_imp;
+	bool NotifyClient();
+
+	void ProcessAck(uint16_t id, const String &FragmentRequest);
 
 	time_t EspuiClientEndTime = 0;
-
-	// bool        NeedsNotification() { return pCurrentFsmState != &fsm_EspuiClient_state_Idle_imp; }
 
 	bool CanSend() const;
 
@@ -64,11 +57,13 @@ protected:
 	bool SendClientNotification(ClientUpdateType_t value) const;
 
 public:
-	esp_ui_client(AsyncWebSocketClient *client, ESPUIClass &ui);
+	esp_ui_client(AsyncWebSocketClient *client, ESPUIClass &ui):
+		ui(ui), client(client) {}
 
-	esp_ui_client(const esp_ui_client &source);
+	esp_ui_client(const esp_ui_client &source):
+		ui(source.ui), client(source.client) {}
 
-	~esp_ui_client();
+	~esp_ui_client() = default;
 
 	void NotifyClient(ClientUpdateType_t value);
 

@@ -75,9 +75,9 @@ protected:
 
 	fs::LittleFSFS &EspuiLittleFS = LittleFS;
 
-	void NotifyClients(esp_ui_client::ClientUpdateType_t newState) const;
+	void NotifyClients(ClientUpdateType_t newState) const;
 
-	void NotifyClient(uint32_t WsClientId, esp_ui_client::ClientUpdateType_t newState);
+	void NotifyClient(uint32_t WsClientId, ClientUpdateType_t newState);
 
 	bool SendJsonDocToWebSocket(const JsonDocument &document, uint16_t clientId);
 

@@ -149,7 +149,7 @@ void ESPUIClass::onWsEvent(
 			MapOfClients[client->id()] = new esp_ui_client(client, *this);
 
 		if (MapOfClients[client->id()]->onWsEvent(type, arg, data, len))
-			NotifyClients(esp_ui_client::UpdateNeeded);
+			NotifyClients(ClientUpdateType_t::UpdateNeeded);
 	}
 }
 
@@ -161,7 +161,7 @@ std::shared_ptr<Control> ESPUIClass::addControl(const Control &control)
 
 	xSemaphoreGive(ControlsSemaphore);
 
-	NotifyClients(esp_ui_client::ClientUpdateType_t::RebuildNeeded);
+	NotifyClients(ClientUpdateType_t::RebuildNeeded);
 
 	return controls.back();
 }
@@ -198,7 +198,7 @@ void ESPUIClass::removeControl(const std::shared_ptr<Control> &control, const bo
 		jsonReload();
 	} else
 	{
-		NotifyClients(esp_ui_client::ClientUpdateType_t::RebuildNeeded);
+		NotifyClients(ClientUpdateType_t::RebuildNeeded);
 	}
 }
 
@@ -227,7 +227,7 @@ void ESPUIClass::updateControl(Control &control, int)
 {
 	// tell the control it has been updated
 	control.SetControlChangedId(GetNextControlChangeId());
-	NotifyClients(esp_ui_client::ClientUpdateType_t::UpdateNeeded);
+	NotifyClients(ClientUpdateType_t::UpdateNeeded);
 }
 
 uint32_t ESPUIClass::GetNextControlChangeId()
@@ -391,11 +391,11 @@ bool ESPUIClass::SendJsonDocToWebSocket(const ArduinoJson::JsonDocument &documen
 
 void ESPUIClass::jsonDom(uint16_t, AsyncWebSocketClient *, bool) const
 {
-	NotifyClients(esp_ui_client::ClientUpdateType_t::RebuildNeeded);
+	NotifyClients(ClientUpdateType_t::RebuildNeeded);
 }
 
 // Tell all the clients that they need to ask for an upload of the control data.
-void ESPUIClass::NotifyClients(const esp_ui_client::ClientUpdateType_t newState) const
+void ESPUIClass::NotifyClients(const ClientUpdateType_t newState) const
 {
 	for (const auto &CurrentClient: MapOfClients)
 	{
@@ -406,7 +406,7 @@ void ESPUIClass::NotifyClients(const esp_ui_client::ClientUpdateType_t newState)
 void ESPUIClass::jsonReload() const
 {
 	for (const auto &CurrentClient: MapOfClients)
-		CurrentClient.second->NotifyClient(esp_ui_client::ClientUpdateType_t::ReloadNeeded);
+		CurrentClient.second->NotifyClient(ClientUpdateType_t::ReloadNeeded);
 }
 
 void ESPUIClass::beginLITTLEFS(const char *_title, const uint16_t port)

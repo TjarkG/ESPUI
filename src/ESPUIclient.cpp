@@ -2,84 +2,84 @@
 #include "ESPUI.hpp"
 #include "ESPUIcontrol.hpp"
 
-// JSONSlave:
-// helper to process exact JSON serialization size
-// it takes ~2ms on esp8266 and avoid large String reallocation which is really worth the cost
-class JSONSlave final : public Print
+bool esp_ui_client::NotifyClient()
 {
-public:
-	size_t write(uint8_t c) override
+	if (ClientState != ClientState_t::Idle)
+		return true;
+
+	// Clear the type so that we capture any changes in type that happen
+	// while we are processing the current request.
+	const auto TypeToProcess = ClientUpdateType;
+	ClientUpdateType = ClientUpdateType_t::Synchronized;
+
+	// Start processing the current request.
+	switch (TypeToProcess)
 	{
-		counter++;
-		return 1;
+		case ClientUpdateType_t::Synchronized:
+		{
+			return true;
+		}
+		case ClientUpdateType_t::UpdateNeeded:
+		{
+			ClientState = ClientState_t::Sending;
+			return SendClientNotification(ClientUpdateType_t::UpdateNeeded);
+		}
+		case ClientUpdateType_t::RebuildNeeded:
+		{
+			ClientState = ClientState_t::Rebuilding;
+			return SendClientNotification(ClientUpdateType_t::RebuildNeeded);
+		}
+		case ClientUpdateType_t::ReloadNeeded:
+		{
+			ClientState = ClientState_t::Reloading;
+			return SendClientNotification(ClientUpdateType_t::ReloadNeeded);
+		}
 	}
-
-	size_t write(const uint8_t *buf, const size_t count) override
-	{
-		counter += count;
-		return count;
-	}
-
-	size_t get_counter() const { return counter; }
-
-	static size_t serializedSize(const JsonDocument &doc)
-	{
-		JSONSlave counter;
-		serializeJson(doc, counter);
-		return counter.get_counter();
-	}
-
-	static size_t serialize(const JsonDocument &doc, String &str)
-	{
-		const size_t s = serializedSize(doc) + 10; // 10 is paranoid
-		str.reserve(s);
-		serializeJson(doc, str);
-		return s;
-	}
-
-	static String toString(const JsonDocument &doc)
-	{
-		String str;
-		serialize(doc, str);
-		return str;
-	}
-
-protected:
-	size_t counter = 0;
-};
-
-esp_ui_client::esp_ui_client(AsyncWebSocketClient *client, ESPUIClass &ui):
-	ui(ui), client(client)
-{
-	fsm_EspuiClient_state_Idle_imp.SetParent(this);
-	fsm_EspuiClient_state_SendingUpdate_imp.SetParent(this);
-	fsm_EspuiClient_state_Rebuilding_imp.SetParent(this);
-	fsm_EspuiClient_state_Reloading_imp.SetParent(this);
-
-	fsm_EspuiClient_state_Idle_imp.Init();
+	return false;
 }
 
-esp_ui_client::esp_ui_client(const esp_ui_client &source):
-	ui(source.ui), client(source.client)
+void esp_ui_client::ProcessAck(const uint16_t id, const String &FragmentRequest)
 {
-	fsm_EspuiClient_state_Idle_imp.SetParent(this);
-	fsm_EspuiClient_state_SendingUpdate_imp.SetParent(this);
-	fsm_EspuiClient_state_Rebuilding_imp.SetParent(this);
-	fsm_EspuiClient_state_Reloading_imp.SetParent(this);
-
-	fsm_EspuiClient_state_Idle_imp.Init();
+	switch (ClientState)
+	{
+		case ClientState_t::Idle:
+			if (!emptyString.equals(FragmentRequest))
+				SendControlsToClient(id, ClientUpdateType_t::UpdateNeeded, FragmentRequest);
+			else
+			{
+				// This is an unexpected request for control data from the browser
+				// treat it as if it was a rebuild operation
+				NotifyClient(ClientUpdateType_t::RebuildNeeded);
+			}
+			break;
+		case ClientState_t::Sending:
+			if (SendControlsToClient(id, ClientUpdateType_t::UpdateNeeded, FragmentRequest))
+			{
+				// No more data to send. Go back to idle or start next request
+				ClientState = ClientState_t::Idle;
+				NotifyClient();
+			}
+			break;
+		case ClientState_t::Rebuilding:
+			if (SendControlsToClient(id, ClientUpdateType_t::RebuildNeeded, FragmentRequest))
+			{
+				// No more data to send. Go back to idle or start next request
+				ClientState = ClientState_t::Idle;
+				NotifyClient();
+			}
+			break;
+		case ClientState_t::Reloading:
+			if (!emptyString.equals(FragmentRequest))
+				SendControlsToClient(id, ClientUpdateType_t::UpdateNeeded, FragmentRequest);
+			break;
+	}
 }
-
-esp_ui_client::~esp_ui_client() = default;
 
 bool esp_ui_client::CanSend() const
 {
-	bool Response = false;
-	if (nullptr != client)
-	{
-		Response = client->canSend();
-	}
-	return Response;
+	if (client)
+		return client->canSend();
+	return false;
 }
 
 void esp_ui_client::FillInHeader(JsonDocument &document) const
@@ -96,8 +96,7 @@ void esp_ui_client::FillInHeader(JsonDocument &document) const
 
 bool esp_ui_client::IsSynchronized() const
 {
-	return Synchronized == ClientUpdateType &&
-	       &fsm_EspuiClient_state_Idle_imp == pCurrentFsmState;
+	return ClientUpdateType_t::Synchronized == ClientUpdateType && ClientState == ClientState_t::Idle;
 }
 
 bool esp_ui_client::SendClientNotification(const ClientUpdateType_t value) const
@@ -107,7 +106,7 @@ bool esp_ui_client::SendClientNotification(const ClientUpdateType_t value) const
 
 	JsonDocument document;
 	FillInHeader(document);
-	if (ReloadNeeded == value)
+	if (ClientUpdateType_t::ReloadNeeded == value)
 		document["type"] = static_cast<int>(Reload);
 	// dont send any controls
 
@@ -115,10 +114,10 @@ bool esp_ui_client::SendClientNotification(const ClientUpdateType_t value) const
 	return Response;
 }
 
-void esp_ui_client::NotifyClient(const ClientUpdateType_t newState)
+void esp_ui_client::NotifyClient(const ClientUpdateType_t value)
 {
-	SetState(newState);
-	pCurrentFsmState->NotifyClient();
+	SetState(value);
+	NotifyClient();
 }
 
 // Handle Websockets Communication
@@ -130,7 +129,7 @@ bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t 
 	{
 		case WS_EVT_CONNECT:
 		{
-			NotifyClient(RebuildNeeded);
+			NotifyClient(ClientUpdateType_t::RebuildNeeded);
 			break;
 		}
 
@@ -140,9 +139,7 @@ bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t 
 			msg.reserve(len + 1);
 
 			for (size_t i = 0; i < len; i++)
-			{
 				msg += static_cast<char>(data[i]);
-			}
 
 			const String cmd = msg.substring(0, msg.indexOf(":"));
 			const String value = msg.substring(cmd.length() + 1, msg.lastIndexOf(':'));
@@ -150,14 +147,14 @@ bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t 
 
 			if (cmd.equals(F("uiok")))
 			{
-				pCurrentFsmState->ProcessAck(id, emptyString);
+				ProcessAck(id, emptyString);
 				break;
 			}
 
 			if (cmd.equals(F("uifragmentok")))
 			{
 				if (!emptyString.equals(value))
-					pCurrentFsmState->ProcessAck(0xFFFF, value);
+					ProcessAck(0xFFFF, value);
 				else
 				{
 					Serial.println(F(
@@ -332,11 +329,11 @@ bool esp_ui_client::SendControlsToClient(const uint16_t start_idx, const ClientU
 
 	if (0 == start_idx)
 	{
-		document["type"] = (RebuildNeeded == TransferMode) ? MessageTypes::InitialGui : MessageTypes::ExtendGUI;
+		document["type"] = (ClientUpdateType_t::RebuildNeeded == TransferMode) ? InitialGui : ExtendGUI;
 		CurrentSyncID = NextSyncID;
 		NextSyncID = ui.GetNextControlChangeId();
 	}
-	if (prepareJSONChunk(document, UpdateNeeded == TransferMode, FragmentRequest))
+	if (prepareJSONChunk(document, ClientUpdateType_t::UpdateNeeded == TransferMode, FragmentRequest))
 	{
 		(void) SendJsonDocToWebSocket(document);
 		return false;
@@ -349,7 +346,8 @@ bool esp_ui_client::SendJsonDocToWebSocket(const JsonDocument &document) const
 	if (!CanSend())
 		return false;
 
-	const String json = JSONSlave::toString(document);
+	String json {};
+	serializeJson(document, json);
 
 	client->text(json);
 	return true;
