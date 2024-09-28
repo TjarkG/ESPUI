@@ -95,11 +95,11 @@ public:
 
 	std::shared_ptr<Control> addControl(const Control& control);
 
-	std::shared_ptr<Control> addControl(ControlType type, const char *label, const std::string &value = "",
+	std::shared_ptr<Control> addControl(ControlType type, const std::string &label, const std::string &value = "",
 	                                    ControlColor color = ControlColor::Turquoise,
 	                                    const std::shared_ptr<Control>& parentControl = nullptr);
 
-	std::shared_ptr<Control> addControl(ControlType type, const char *label, const std::string &value, ControlColor color,
+	std::shared_ptr<Control> addControl(ControlType type, const std::string &label, const std::string &value, ControlColor color,
 	                                    const std::shared_ptr<Control>& parentControl,
 	                                    const std::function<void(Control *, int)> &callback);
 
@@ -112,7 +112,7 @@ public:
 	// Update Elements
 	void updateControlValue(Control &control, const std::string &value, int clientId = -1);
 
-	void updateControlLabel(Control &control, const char *value, int clientId = -1);
+	void updateControlLabel(Control &control, const std::string &value, int clientId = -1);
 
 	void updateControl(Control &control, int clientId = -1);
 

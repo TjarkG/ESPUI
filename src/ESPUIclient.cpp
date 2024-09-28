@@ -141,9 +141,12 @@ bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t 
 			for (size_t i = 0; i < len; i++)
 				msg += static_cast<char>(data[i]);
 
-			const std::string cmd = msg.substr(0, msg.find(':'));
-			const std::string value = msg.substr(cmd.length() + 1, msg.find_last_of(':'));
-			const uint16_t id = std::stoi(msg.substr(msg.find_last_of(':') + 1));
+			const auto delim1 {msg.find(':')};
+			const auto delim2 {msg.find_last_of(':')};
+
+			const std::string cmd = msg.substr(0, delim1);
+			const std::string value = msg.substr(delim1 + 1, delim2 - delim1 - 1);
+			const uint16_t id = std::stoi(msg.substr(delim2 + 1));
 
 			if (cmd == "uiok")
 			{

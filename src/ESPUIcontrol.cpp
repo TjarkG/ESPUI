@@ -5,10 +5,11 @@
 static uint16_t idCounter = 0;
 static const std::string ControlError = "*** ESPUI ERROR: Could not transfer control ***";
 
-Control::Control(ControlType type, const char *label, std::function<void(Control *, int)> callback,
-                 std::string value, ControlColor color, bool visible, const std::shared_ptr<Control> &parentControl):
+Control::Control(const ControlType type, std::string label, std::function<void(Control *, int)> callback,
+                 std::string value, const ControlColor color, const bool visible,
+                 const std::shared_ptr<Control> &parentControl):
 	type(type),
-	label(label),
+	label(std::move(label)),
 	callback(std::move(callback)),
 	value(std::move(value)),
 	color(color),
@@ -49,7 +50,7 @@ bool Control::MarshalControl(const JsonObject &_item,
 	const JsonObject &item = _item;
 
 	// how much space do we expect to use?
-	const uint32_t LabelMarshaledLength = strlen(label) * JsonMarshalingRatio;
+	const uint32_t LabelMarshaledLength = label.length() * JsonMarshalingRatio;
 	const uint32_t MinimumMarshaledLength = LabelMarshaledLength + JsonMarshaledOverhead;
 	const uint32_t SpaceForMarshaledValue = MaxLength - MinimumMarshaledLength;
 
@@ -103,9 +104,7 @@ bool Control::MarshalControl(const JsonObject &_item,
 	}
 
 	item[F("label")] = label;
-	item[F("value")] = ControlType::Password == type
-		                   ? "--------"
-		                   : value.substr(DataOffset, ValueLenToSend);
+	item[F("value")] = ControlType::Password == type ? "--------" : value.substr(DataOffset, ValueLenToSend);
 	item[F("visible")] = visible;
 	item[F("color")] = static_cast<int>(color);
 	item[F("enabled")] = enabled;
@@ -141,7 +140,7 @@ void Control::MarshalErrorMessage(const JsonObject &item) const
 {
 	item[F("id")] = id;
 	item[F("type")] = static_cast<uint32_t>(ControlType::Label);
-	item[F("label")] = ControlError.c_str();
+	item[F("label")] = ControlError;
 	item[F("value")] = ControlError;
 	item[F("visible")] = true;
 	item[F("color")] = static_cast<int>(ControlColor::Orange);
