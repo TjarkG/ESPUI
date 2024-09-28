@@ -82,11 +82,11 @@ const C_ALIZARIN = 6;
 const C_DARK = 7;
 const C_NONE = 255;
 
-var controlAssemblyArray = new Object();
-var FragmentAssemblyTimer = new Array();
-var graphData = new Array();
-var hasAccel = false;
-var sliderContinuous = false;
+let controlAssemblyArray = {};
+let FragmentAssemblyTimer = [];
+const graphData = [];
+let hasAccel = false;
+let sliderContinuous = false;
 
 function colorClass(colorId) {
     colorId = Number(colorId);
@@ -120,9 +120,9 @@ function colorClass(colorId) {
     }
 }
 
-var websock;
-var websockConnected = false;
-var WebSocketTimer = null;
+let websock;
+let websockConnected = false;
+let WebSocketTimer = null;
 
 function requestOrientationPermission() {
     /*
@@ -181,7 +181,7 @@ function saveGraphData() {
 }
 
 function restoreGraphData(id) {
-    var savedData = localStorage.getItem("espuigraphs", graphData);
+    let savedData = localStorage.getItem("espuigraphs", graphData);
     if (savedData != null) {
         savedData = JSON.parse(savedData);
         let idData = savedData[id];
@@ -201,17 +201,18 @@ function conStatusError() {
     FragmentAssemblyTimer.forEach(element => {
         clearInterval(element);
     });
-    FragmentAssemblyTimer = new Array();
-    controlAssemblyArray = new Array();
+    FragmentAssemblyTimer = [];
+    controlAssemblyArray = [];
 
     if (true === websockConnected) {
         websockConnected = false;
         websock.close();
-        $("#conStatus").removeClass("color-green");
-        $("#conStatus").addClass("color-red");
-        $("#conStatus").html("Error / No Connection &#8635;");
-        $("#conStatus").off();
-        $("#conStatus").on({
+        let conStatus = $("#conStatus");
+        conStatus.removeClass("color-green");
+        conStatus.addClass("color-red");
+        conStatus.html("Error / No Connection &#8635;");
+        conStatus.off();
+        conStatus.on({
             click: restart,
         });
     }
@@ -231,9 +232,9 @@ function start() {
 
     document.addEventListener("visibilitychange", handleVisibilityChange, false);
     if (
-        port != "" ||
-        port != 80 ||
-        port != 443
+        port !== "" ||
+        port !== 80 ||
+        port !== 443
     ) {
         websock = new WebSocket("ws://" + location + ":" + port + "/ws");
     } else {
@@ -255,14 +256,15 @@ function start() {
 
     websock.onopen = function (evt) {
         console.log("websock open");
-        $("#conStatus").addClass("color-green");
-        $("#conStatus").text("Connected");
+        let conStatus = $("#conStatus");
+        conStatus.addClass("color-green");
+        conStatus.text("Connected");
         websockConnected = true;
         FragmentAssemblyTimer.forEach(element => {
             clearInterval(element);
         });
-        FragmentAssemblyTimer = new Array();
-        controlAssemblyArray = new Array();
+        FragmentAssemblyTimer = [];
+        controlAssemblyArray = [];
     };
 
     websock.onclose = function (evt) {
@@ -274,8 +276,8 @@ function start() {
         FragmentAssemblyTimer.forEach(element => {
             clearInterval(element);
         });
-        FragmentAssemblyTimer = new Array();
-        controlAssemblyArray = new Array();
+        FragmentAssemblyTimer = [];
+        controlAssemblyArray = [];
     };
 
     websock.onerror = function (evt) {
@@ -287,11 +289,11 @@ function start() {
         FragmentAssemblyTimer.forEach(element => {
             clearInterval(element);
         });
-        FragmentAssemblyTimer = new Array();
-        controlAssemblyArray = new Array();
+        FragmentAssemblyTimer = [];
+        controlAssemblyArray = [];
     };
 
-    var handleEvent = function (evt) {
+    const handleEvent = function (evt) {
         // console.log("handleEvent:Data evt: '" + evt + "'");
         // console.log("handleEvent:Data data: '" + evt.data + "'");
         try {
@@ -302,8 +304,8 @@ function start() {
             websock.send("uiok:" + 0);
             return;
         }
-        var e = document.body;
-        var center = "";
+        const e = document.body;
+        const center = "";
         // console.info("data.type: '" + data.type + "'");
 
         switch (data.type) {
@@ -319,7 +321,7 @@ function start() {
                 // console.info("UI_INITIAL_GUI:data record: '" + data + "'");
                 data.controls.forEach(element => {
                     // console.info("element: '" + JSON.stringify(element) + "'");
-                    var fauxEvent = {
+                    const fauxEvent = {
                         data: JSON.stringify(element),
                     };
                     handleEvent(fauxEvent);
@@ -337,7 +339,7 @@ function start() {
                 // console.info("UI_EXTEND_GUI data record: '" + data + "'");
                 data.controls.forEach(element => {
                     // console.info("UI_EXTEND_GUI:element: '" + JSON.stringify(element) + "'");
-                    var fauxEvent = {
+                    const fauxEvent = {
                         data: JSON.stringify(element),
                     };
                     handleEvent(fauxEvent);
@@ -475,7 +477,7 @@ function start() {
                             return $(this).attr("href") === "#click-to-switch";
                         })
                         .on("click", function (e) {
-                            var tab = prompt("Tab to switch to (number or id)?");
+                            const tab = prompt("Tab to switch to (number or id)?");
                             if (!tabs.switchTab(tab)) {
                                 alert("That tab does not exist :\\");
                             }
@@ -486,7 +488,7 @@ function start() {
 
             case UI_OPTION:
                 if (data.parentControl) {
-                    var parent = $("#select" + data.parentControl);
+                    const parent = $("#select" + data.parentControl);
                     parent.append(
                         "<option id='option" +
                         data.id +
@@ -548,7 +550,7 @@ function start() {
                 }
                 break;
             case ADD_GRAPH_POINT:
-                var ts = new Date().getTime();
+                const ts = new Date().getTime();
                 graphData[data.id].push({x: ts, y: data.value});
                 saveGraphData();
                 renderGraphSvg(graphData[data.id], "graph" + data.id);
@@ -586,7 +588,7 @@ function start() {
                 break;
 
             case UPDATE_SWITCHER:
-                switcher(data.id, data.value == "0" ? 0 : 1);
+                switcher(data.id, data.value === "0" ? 0 : 1);
                 if (data.hasOwnProperty('elementStyle')) {
                     $("#sl" + data.id).attr("style", data.elementStyle);
                 }
@@ -645,7 +647,7 @@ function start() {
                 break;
 
             case UPDATE_TIME:
-                var rv = new Date().toISOString();
+                const rv = new Date().toISOString();
                 websock.send("time:" + rv + ":" + data.id);
                 break;
 
@@ -763,7 +765,7 @@ function start() {
                     $("#id" + data.id).hide();
             }
 
-            if (data.type == UPDATE_SLIDER) {
+            if (data.type === UPDATE_SLIDER) {
                 element.removeClass(
                     "slider-turquoise slider-emerald slider-peterriver slider-wetasphalt slider-sunflower slider-carrot slider-alizarin"
                 );
@@ -809,14 +811,12 @@ async function FileDisplayUploadFile(data) {
 async function downloadFile(filename) {
     let response = await fetch(filename);
 
-    if (response.status != 200) {
+    if (response.status !== 200) {
         throw new Error("File Read Server Error: '" + response.status + "'");
     }
 
     // read response stream as text
-    let text_data = await response.text();
-
-    return text_data;
+    return await response.text();
 } // downloadFile
 
 function StartFragmentAssemblyTimer(Id) {
@@ -846,7 +846,7 @@ function StopFragmentAssemblyTimer(Id) {
 }
 
 function sliderchange(number) {
-    var val = $("#sl" + number).val();
+    const val = $("#sl" + number).val();
     websock.send("slvalue:" + val + ":" + number);
 
     $(".range-slider__range").each(function () {
@@ -855,22 +855,22 @@ function sliderchange(number) {
 }
 
 function numberchange(number) {
-    var val = $("#num" + number).val();
+    const val = $("#num" + number).val();
     websock.send("nvalue:" + val + ":" + number);
 }
 
 function textchange(number) {
-    var val = $("#text" + number).val();
+    const val = $("#text" + number).val();
     websock.send("tvalue:" + val + ":" + number);
 }
 
 function tabclick(number) {
-    var val = $("#tab" + number).val();
+    const val = $("#tab" + number).val();
     websock.send("tabvalue:" + val + ":" + number);
 }
 
 function selectchange(number) {
-    var val = $("#select" + number).val();
+    const val = $("#select" + number).val();
     websock.send("svalue:" + val + ":" + number);
 }
 
@@ -916,18 +916,18 @@ function switcher(number, state) {
             websock.send("sinactive:" + number);
             $("#sl" + number).removeClass("checked");
         }
-    } else if (state == 1) {
+    } else if (state === 1) {
         $("#sl" + number).addClass("checked");
         $("#sl" + number).prop("checked", true);
-    } else if (state == 0) {
+    } else if (state === 0) {
         $("#sl" + number).removeClass("checked");
         $("#sl" + number).prop("checked", false);
     }
 }
 
 var rangeSlider = function (isDiscrete) {
-    var range = $(".range-slider__range");
-    var slidercb = function () {
+    const range = $(".range-slider__range");
+    const slidercb = function () {
         sliderchange($(this).attr("id").replace(/^\D+/g, ""));
     };
 
@@ -939,7 +939,7 @@ var rangeSlider = function (isDiscrete) {
 
     range.each(function () {
         $(this).next().html(this.value);
-        if ($(this).attr("callbackSet") != "true") {
+        if ($(this).attr("callbackSet") !== "true") {
             if (!isDiscrete) {
                 $(this).on({input: slidercb}); //input fires when dragging
             } else {
@@ -961,7 +961,7 @@ var addToHTML = function (data) {
             $("#tab" + data.parentControl) :
             $("#row");
 
-        var html = "";
+        let html = "";
         switch (data.type) {
             case UI_LABEL:
             case UI_BUTTON:
@@ -1001,9 +1001,9 @@ var addToHTML = function (data) {
 }
 
 var elementHTML = function (data) {
-    var id = data.id
-    var elementStyle = data.hasOwnProperty('elementStyle') ? " style='" + data.elementStyle + "' " : "";
-    var inputType = data.hasOwnProperty('inputType') ? " type='" + data.inputType + "' " : "";
+    const id = data.id;
+    const elementStyle = data.hasOwnProperty('elementStyle') ? " style='" + data.elementStyle + "' " : "";
+    const inputType = data.hasOwnProperty('inputType') ? " type='" + data.inputType + "' " : "";
     switch (data.type) {
         case UI_LABEL:
             return "<span id='l" + id + "' " + elementStyle +
@@ -1018,12 +1018,12 @@ var elementHTML = function (data) {
                 data.value + "</button>";
         case UI_SWITCHER:
             return "<label id='sl" + id + "' " + elementStyle +
-                " class='switch " + (data.value == "1" ? "checked" : "") +
+                " class='switch " + (data.value === "1" ? "checked" : "") +
                 (data.hasOwnProperty('vertical') ? " vert-switcher " : "") +
                 "'>" +
                 "<div class='in'>" +
                 "<input type='checkbox' id='s" + id + "' onClick='switcher(" + id + ",null)' " +
-                (data.value == "1" ? "checked" : "") + "/></div></label>";
+                (data.value === "1" ? "checked" : "") + "/></div></label>";
         case UI_CPAD:
         case UI_PAD:
             return "<nav class='control'><ul>" +
@@ -1036,7 +1036,7 @@ var elementHTML = function (data) {
                 "<li><a onmousedown='padclick(DOWN, " + id + ", true)' " +
                 "onmouseup='padclick(DOWN, " + id + ", false)' id='pb" + id + "'>&#9650;</a></li>" +
                 "</ul>" +
-                (data.type == UI_CPAD
+                (data.type === UI_CPAD
                     ? "<a class='confirm' onmousedown='padclick(CENTER," + id + ", true)' " +
                     "onmouseup='padclick(CENTER, " + id + ", false)' id='pc" + id + "'>OK</a>"
                     : "") +

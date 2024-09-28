@@ -1,10 +1,4 @@
-/**
- * Tabs plugin for jQuery created by Òscar Casajuana < elboletaire at underave dot net >
- *
- * @copyright Copyright 2013-2016 Òscar Casajuana
- * @license   MIT
- * @author    Òscar Casajuana Alonso <elboletaire at underave dot net>
- */
+/* Tabs plugin for jQuery */
 ;(function ($, document, window, undefined) {
     "use strict";
 
@@ -37,8 +31,8 @@
         /**
          * Checks if the specified tab id exists.
          *
-         * @param  string tab Tab #id
-         * @return bool
+         * @param  tab string Tab #id
+         * @return boolean
          */
         function tabExists(tab) {
             return Boolean(children.filter(tab).length);
@@ -48,7 +42,7 @@
          * Checks if the current tab is the
          * first one in the tabs set.
          *
-         * @return bool
+         * @return boolean
          */
         function isFirst() {
             return current === 0;
@@ -57,8 +51,8 @@
         /**
          * Checks if the passed number is an integer.
          *
-         * @param  mixed  num The value to be checked.
-         * @return bool
+         * @param  num mixed The value to be checked.
+         * @return boolean
          */
         function isInt(num) {
             return num % 1 === 0;
@@ -79,7 +73,7 @@
          *
          * Method for compatibility with Zepto.js
          *
-         * @param  string tab Tab #href
+         * @param  tab string Tab #href
          * @return bool
          */
         function filterTab(tab) {
@@ -90,7 +84,7 @@
          * Returns an object containing two jQuery instances:
          * one for the tab content and the other for its link.
          *
-         * @param  mixed tab A tab id, #id or index.
+         * @param  tab mixed A tab id, #id or index.
          * @return object    With thi
          */
         function getTab(tab) {
@@ -135,8 +129,8 @@
         /**
          * Go to the next tab in the tabs set.
          *
-         * @param  bool  loop If defined will overwrite options.loop
-         * @return mixed
+         * @param  loop bool If defined will overwrite options
+         * @return boolean
          */
         function next(loop) {
             ++current;
@@ -155,8 +149,8 @@
         /**
          * Go to the previous tab in the tabs set.
          *
-         * @param  bool  loop If defined will overwrite options.loop
-         * @return mixed
+         * @param  loop boolean If defined will overwrite options.loop
+         * @return boolean
          */
         function prev(loop) {
             --current;
@@ -175,7 +169,7 @@
         /**
          * onSwitch callback for switchTab.
          *
-         * @param  string tab The tab #id
+         * @param  tab string The tab #id
          * @return void
          */
         function onSwitch(tab) {
@@ -195,9 +189,9 @@
         /**
          * Switch to specified tab.
          *
-         * @param  mixed tab The tab to switch to.
-         * @param  bool  api Set to true to force history writing.
-         * @return bool      Returns false if tab does not exist; true otherwise.
+         * @param  tab mixed The tab to switch to.
+         * @param  api bool Set to true to force history writing.
+         * @return boolean Returns false if tab does not exist; true otherwise.
          */
         function switchTab(tab, api) {
             if (!tab.toString().match(/^#/)) {
@@ -242,8 +236,8 @@
         /**
          * Api method to switch tabs.
          *
-         * @param  mixed tab Tab to switch to.
-         * @return bool      Returns false if tab does not exist; true otherwise.
+         * @param  tab mixed Tab to switch to.
+         * @return bool Returns false if tab does not exist; true otherwise.
          */
         function apiSwitch(tab) {
             return switchTab(tab, true);
@@ -253,7 +247,7 @@
          * Method used to switch tabs using the
          * browser query hash.
          *
-         * @param  object e Event.
+         * @param  e object Event.
          * @return void
          */
         function hashSwitch(e) {

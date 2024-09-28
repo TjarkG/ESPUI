@@ -6,12 +6,12 @@ function lineGraph(parent, xAccessor, yAccessor) {
     const pixelsPerTick = 30;
 
     /**
-     * Creates an object that contatins transform functions that:
+     * Creates an object that contains transform functions that:
      *   transforms numeric data into coordinate space, linearly
      *   transforms coordinates into numeric data, linearly
      */
     function numericTransformer(dataMin, dataMax, pxMin, pxMax) {
-        var dataDiff = dataMax - dataMin,
+        const dataDiff = dataMax - dataMin,
             pxDiff = pxMax - pxMin,
             dataRatio = pxDiff / dataDiff,
             coordRatio = dataDiff / pxDiff;
@@ -34,18 +34,18 @@ function lineGraph(parent, xAccessor, yAccessor) {
      *   transform = a function for transforming px into data for labeling/creating tick marks
      */
     function axisRenderer(orientation, transform) {
-        var axisGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        var axisPath = document.createElementNS(
+        const axisGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        const axisPath = document.createElementNS(
             "http://www.w3.org/2000/svg",
             "path"
         );
 
         axisGroup.setAttribute("class", orientation + "-axis");
 
-        var xMin = gutter;
-        var xMax = width - gutter;
-        var yMin = height - gutter;
-        var yMax = gutter;
+        const xMin = gutter;
+        const xMax = width - gutter;
+        const yMin = height - gutter;
+        const yMax = gutter;
 
         if (orientation === "x") {
             axisPath.setAttribute(
@@ -78,11 +78,11 @@ function lineGraph(parent, xAccessor, yAccessor) {
             // generate labels
             for (var i = yMax; i <= yMin; i++) {
                 if ((i - yMin) % pixelsPerTick === 0 && i !== yMin) {
-                    var tickGroup = document.createElementNS(
+                    const tickGroup = document.createElementNS(
                         "http://www.w3.org/2000/svg",
                         "g"
                     );
-                    var gridLine = document.createElementNS(
+                    const gridLine = document.createElementNS(
                         "http://www.w3.org/2000/svg",
                         "path"
                     );
@@ -115,7 +115,7 @@ function lineGraph(parent, xAccessor, yAccessor) {
      * Renders a line
      */
     function lineRenderer(xAccessor, yAccessor, xTransform, yTransform) {
-        var line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
 
         xAccessor.reset();
         yAccessor.reset();
@@ -123,7 +123,7 @@ function lineGraph(parent, xAccessor, yAccessor) {
             return;
         }
 
-        var pathString =
+        let pathString =
             "M " + xTransform(xAccessor.next()) + " " + yTransform(yAccessor.next());
         while (xAccessor.hasNext() && yAccessor.hasNext()) {
             pathString +=
@@ -143,7 +143,7 @@ function lineGraph(parent, xAccessor, yAccessor) {
      * Renders data point circles + text labels
      */
     function pointRenderer(xAccessor, yAccessor, xTransform, yTransform) {
-        var pointGroup = document.createElementNS(
+        const pointGroup = document.createElementNS(
             "http://www.w3.org/2000/svg",
             "g"
         );
@@ -157,12 +157,12 @@ function lineGraph(parent, xAccessor, yAccessor) {
         }
 
         while (xAccessor.hasNext() && yAccessor.hasNext()) {
-            var xDataValue = xAccessor.next();
-            var x = xTransform(xDataValue);
-            var yDataValue = yAccessor.next();
-            var y = yTransform(yDataValue);
+            const xDataValue = xAccessor.next();
+            const x = xTransform(xDataValue);
+            const yDataValue = yAccessor.next();
+            const y = yTransform(yDataValue);
 
-            var circle = document.createElementNS(
+            const circle = document.createElementNS(
                 "http://www.w3.org/2000/svg",
                 "circle"
             );
@@ -170,7 +170,7 @@ function lineGraph(parent, xAccessor, yAccessor) {
             circle.setAttribute("cy", y);
             circle.setAttribute("r", "4");
 
-            var text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
             // primitive formatting
             text.innerHTML = Math.floor(xDataValue) + " / " + Math.floor(yDataValue);
             text.setAttribute("x", x);
@@ -190,7 +190,7 @@ function lineGraph(parent, xAccessor, yAccessor) {
     xTransform = numericTransformer(
         xAccessor.min(),
         xAccessor.max(),
-        0 + gutter,
+        gutter,
         width - gutter
     );
     // NOTE: for y... have to reverse coordinate space
@@ -198,7 +198,7 @@ function lineGraph(parent, xAccessor, yAccessor) {
         yAccessor.min(),
         yAccessor.max(),
         height - gutter,
-        0 + gutter
+        gutter
     );
 
     axisRenderer("x", xTransform.toData);
@@ -210,12 +210,12 @@ function lineGraph(parent, xAccessor, yAccessor) {
 
 // Final render function
 function renderGraphSvg(dataArray, renderId) {
-    var figure = document.getElementById(renderId);
+    const figure = document.getElementById(renderId);
     while (figure.hasChildNodes()) {
         figure.removeChild(figure.lastChild);
     }
     //console.log(dataArray);
-    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", "0 0 640 440");
     svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
@@ -223,7 +223,7 @@ function renderGraphSvg(dataArray, renderId) {
         svg,
         // time accessor
         (function (data, min, max) {
-            var i = 0;
+            let i = 0;
             return {
                 hasNext: function () {
                     return i < data.length;
@@ -258,7 +258,7 @@ function renderGraphSvg(dataArray, renderId) {
         ),
         // value accessor
         (function (data, min, max) {
-            var i = 0;
+            let i = 0;
             return {
                 hasNext: function () {
                     return i < data.length;
