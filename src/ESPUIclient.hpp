@@ -42,7 +42,7 @@ class esp_ui_client final
 
 	bool NotifyClient();
 
-	void ProcessAck(uint16_t id, const String &FragmentRequest);
+	void ProcessAck(uint16_t id, const std::string &FragmentRequest);
 
 	time_t EspuiClientEndTime = 0;
 
@@ -50,9 +50,9 @@ class esp_ui_client final
 
 	void FillInHeader(JsonDocument &document) const;
 
-	uint32_t prepareJSONChunk(JsonDocument &rootDoc, bool InUpdateMode, const String &value) const;
+	uint32_t prepareJSONChunk(JsonDocument &rootDoc, bool InUpdateMode, const std::string &value) const;
 
-	bool SendControlsToClient(uint16_t start_idx, ClientUpdateType_t TransferMode, const String &FragmentRequest);
+	bool SendControlsToClient(uint16_t start_idx, ClientUpdateType_t TransferMode, const std::string &FragmentRequest);
 
 	bool SendClientNotification(ClientUpdateType_t value) const;
 

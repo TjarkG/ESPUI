@@ -95,11 +95,11 @@ public:
 
 	std::shared_ptr<Control> addControl(const Control& control);
 
-	std::shared_ptr<Control> addControl(ControlType type, const char *label, const String &value = "",
+	std::shared_ptr<Control> addControl(ControlType type, const char *label, const std::string &value = "",
 	                                    ControlColor color = ControlColor::Turquoise,
 	                                    const std::shared_ptr<Control>& parentControl = nullptr);
 
-	std::shared_ptr<Control> addControl(ControlType type, const char *label, const String &value, ControlColor color,
+	std::shared_ptr<Control> addControl(ControlType type, const char *label, const std::string &value, ControlColor color,
 	                                    const std::shared_ptr<Control>& parentControl,
 	                                    const std::function<void(Control *, int)> &callback);
 
@@ -110,27 +110,27 @@ public:
 	std::shared_ptr<Control> getControlNoLock(uint16_t id) const;
 
 	// Update Elements
-	void updateControlValue(Control &control, const String &value, int clientId = -1);
+	void updateControlValue(Control &control, const std::string &value, int clientId = -1);
 
 	void updateControlLabel(Control &control, const char *value, int clientId = -1);
 
 	void updateControl(Control &control, int clientId = -1);
 
-	void print(Control &control, const String &value);
+	void print(Control &control, const std::string &value);
 
-	void updateLabel(Control &control, const String &value);
+	void updateLabel(Control &control, const std::string &value);
 
-	void updateButton(Control &control, const String &value);
+	void updateButton(Control &control, const std::string &value);
 
 	void updateSwitcher(Control &control, bool nValue, int clientId = -1);
 
 	void updateSlider(Control &control, int nValue, int clientId = -1);
 
-	void updateNumber(Control &control, int nValue, int clientId = -1);
+	void updateNumber(Control &control, int number, int clientId = -1);
 
-	void updateText(Control &control, const String &nValue, int clientId = -1);
+	void updateText(Control &control, const std::string &nValue, int clientId = -1);
 
-	void updateSelect(Control &control, const String &nValue, int clientId = -1);
+	void updateSelect(Control &control, const std::string &nValue, int clientId = -1);
 
 	void updateGauge(Control &control, int number, int clientId);
 
@@ -140,11 +140,11 @@ public:
 
 	void addGraphPoint(const Control &control, int nValue, int clientId = -1);
 
-	void setPanelStyle(Control &control, const String &style, int clientId = -1);
+	void setPanelStyle(Control &control, const std::string &style, int clientId = -1);
 
-	void setElementStyle(Control &control, const String &style, int clientId = -1);
+	void setElementStyle(Control &control, const std::string &style, int clientId = -1);
 
-	void setInputType(Control &control, const String &type, int clientId = -1);
+	void setInputType(Control &control, const std::string &type, int clientId = -1);
 
 	void setPanelWide(Control &control, bool wide, int clientId = -1);
 

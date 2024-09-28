@@ -13,14 +13,14 @@
 #include "data/TabbedcontentJS.h"
 #include "data/ZeptoJS.h"
 
-static String heapInfo(const __FlashStringHelper *mode)
+static std::string heapInfo(const __FlashStringHelper *mode)
 {
-	String result;
+	std::string result;
 
-	result += ESP.getFreeHeap();
+	result += std::to_string(ESP.getFreeHeap());
 	result += ' ';
 
-	result += mode;
+	result += std::to_string(reinterpret_cast<int>(mode));
 
 	return result;
 }
@@ -66,7 +66,7 @@ std::shared_ptr<Control> ESPUIClass::addControl(const Control &control)
 }
 
 std::shared_ptr<Control> ESPUIClass::addControl(
-	const ControlType type, const char *label, const String &value, const ControlColor color,
+	const ControlType type, const char *label, const std::string &value, const ControlColor color,
 	const std::shared_ptr<Control> &parentControl)
 {
 	const Control control = {type, label, nullptr, value, color, true, parentControl};
@@ -74,7 +74,7 @@ std::shared_ptr<Control> ESPUIClass::addControl(
 	return addControl(control);
 }
 
-std::shared_ptr<Control> ESPUIClass::addControl(const ControlType type, const char *label, const String &value,
+std::shared_ptr<Control> ESPUIClass::addControl(const ControlType type, const char *label, const std::string &value,
                                                 const ControlColor color,
                                                 const std::shared_ptr<Control> &parentControl,
                                                 const std::function<void(Control *, int)> &callback)
@@ -139,19 +139,19 @@ uint32_t ESPUIClass::GetNextControlChangeId()
 	return ++ControlChangeID;
 }
 
-void ESPUIClass::setPanelStyle(Control &control, const String &style, const int clientId)
+void ESPUIClass::setPanelStyle(Control &control, const std::string &style, const int clientId)
 {
 	control.panelStyle = style;
 	updateControl(control, clientId);
 }
 
-void ESPUIClass::setElementStyle(Control &control, const String &style, const int clientId)
+void ESPUIClass::setElementStyle(Control &control, const std::string &style, const int clientId)
 {
 	control.elementStyle = style;
 	updateControl(control, clientId);
 }
 
-void ESPUIClass::setInputType(Control &control, const String &type, const int clientId)
+void ESPUIClass::setInputType(Control &control, const std::string &type, const int clientId)
 {
 	control.inputType = type;
 	updateControl(control, clientId);
@@ -175,7 +175,7 @@ void ESPUIClass::setVertical(Control &control, const bool vert, const int client
 	updateControl(control, clientId);
 }
 
-void ESPUIClass::updateControlValue(Control &control, const String &value, const int clientId)
+void ESPUIClass::updateControlValue(Control &control, const std::string &value, const int clientId)
 {
 	control.value = value;
 	updateControl(control, clientId);
@@ -193,49 +193,49 @@ void ESPUIClass::updateVisibility(Control &control, const bool visibility, const
 	updateControl(control, clientId);
 }
 
-void ESPUIClass::print(Control &control, const String &value)
+void ESPUIClass::print(Control &control, const std::string &value)
 {
 	updateControlValue(control, value);
 }
 
-void ESPUIClass::updateLabel(Control &control, const String &value)
+void ESPUIClass::updateLabel(Control &control, const std::string &value)
 {
 	updateControlValue(control, value);
 }
 
-void ESPUIClass::updateButton(Control &control, const String &value)
+void ESPUIClass::updateButton(Control &control, const std::string &value)
 {
 	updateControlValue(control, value);
 }
 
 void ESPUIClass::updateSlider(Control &control, const int nValue, const int clientId)
 {
-	updateControlValue(control, String(nValue), clientId);
+	updateControlValue(control, std::to_string(nValue), clientId);
 }
 
 void ESPUIClass::updateSwitcher(Control &control, const bool nValue, const int clientId)
 {
-	updateControlValue(control, String(nValue ? "1" : "0"), clientId);
+	updateControlValue(control, std::string(nValue ? "1" : "0"), clientId);
 }
 
 void ESPUIClass::updateNumber(Control &control, const int number, const int clientId)
 {
-	updateControlValue(control, String(number), clientId);
+	updateControlValue(control, std::to_string(number), clientId);
 }
 
-void ESPUIClass::updateText(Control &control, const String &text, const int clientId)
+void ESPUIClass::updateText(Control &control, const std::string &nValue, const int clientId)
 {
-	updateControlValue(control, text, clientId);
+	updateControlValue(control, nValue, clientId);
 }
 
-void ESPUIClass::updateSelect(Control &control, const String &text, const int clientId)
+void ESPUIClass::updateSelect(Control &control, const std::string &nValue, const int clientId)
 {
-	updateControlValue(control, text, clientId);
+	updateControlValue(control, nValue, clientId);
 }
 
 void ESPUIClass::updateGauge(Control &control, const int number, const int clientId)
 {
-	updateControlValue(control, String(number), clientId);
+	updateControlValue(control, std::to_string(number), clientId);
 }
 
 void ESPUIClass::updateTime(Control &control, const int clientId)
@@ -393,19 +393,19 @@ void ESPUIClass::begin(const char *_title, const uint16_t port)
 	// Heap for general Servertest
 	server->on("/heap", HTTP_GET, [](AsyncWebServerRequest *request)
 	{
-		request->send(200, "text/plain", heapInfo(F("In Memory Mode")));
+		request->send(200, "text/plain", heapInfo(F("In Memory Mode")).c_str());
 	});
 
 	server->onNotFound([this](AsyncWebServerRequest *request)
 	{
 		AsyncResponseStream *response = request->beginResponseStream("text/html");
-		String responseText;
+		std::string responseText;
 		responseText.reserve(1024);
-		responseText += F("<!DOCTYPE html><html><head><title>Captive Portal</title></head><body>");
+		responseText += "<!DOCTYPE html><html><head><title>Captive Portal</title></head><body>";
 		responseText += ("<p>If site does not re-direct click here <a href='http://" + WiFi.softAPIP().toString() +
-		                 "'>this link</a></p>");
-		responseText += (R"(</body></html><head><meta http-equiv="Refresh" content="0; URL='http://)" + WiFi.
-		                 softAPIP().toString() + "'\" /></head>");
+		                 "'>this link</a></p>").c_str();
+		responseText += (R"(</body></html><head><meta http-equiv="Refresh" content="0; URL='http://)" + WiFi.softAPIP().
+		                 toString() + "'\" /></head>").c_str();
 		response->write(responseText.c_str(), responseText.length());
 		request->send(response);
 		yield();

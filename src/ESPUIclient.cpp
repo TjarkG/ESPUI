@@ -38,12 +38,12 @@ bool esp_ui_client::NotifyClient()
 	return false;
 }
 
-void esp_ui_client::ProcessAck(const uint16_t id, const String &FragmentRequest)
+void esp_ui_client::ProcessAck(const uint16_t id, const std::string &FragmentRequest)
 {
 	switch (ClientState)
 	{
 		case ClientState_t::Idle:
-			if (!emptyString.equals(FragmentRequest))
+			if (!FragmentRequest.empty())
 				SendControlsToClient(id, ClientUpdateType_t::UpdateNeeded, FragmentRequest);
 			else
 			{
@@ -69,7 +69,7 @@ void esp_ui_client::ProcessAck(const uint16_t id, const String &FragmentRequest)
 			}
 			break;
 		case ClientState_t::Reloading:
-			if (!emptyString.equals(FragmentRequest))
+			if (!FragmentRequest.empty())
 				SendControlsToClient(id, ClientUpdateType_t::UpdateNeeded, FragmentRequest);
 			break;
 	}
@@ -135,25 +135,25 @@ bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t 
 
 		case WS_EVT_DATA:
 		{
-			String msg = "";
+			std::string msg;
 			msg.reserve(len + 1);
 
 			for (size_t i = 0; i < len; i++)
 				msg += static_cast<char>(data[i]);
 
-			const String cmd = msg.substring(0, msg.indexOf(":"));
-			const String value = msg.substring(cmd.length() + 1, msg.lastIndexOf(':'));
-			const uint16_t id = msg.substring(msg.lastIndexOf(':') + 1).toInt();
+			const std::string cmd = msg.substr(0, msg.find(':'));
+			const std::string value = msg.substr(cmd.length() + 1, msg.find_last_of(':'));
+			const uint16_t id = std::stoi(msg.substr(msg.find_last_of(':') + 1));
 
-			if (cmd.equals(F("uiok")))
+			if (cmd == "uiok")
 			{
-				ProcessAck(id, emptyString);
+				ProcessAck(id, "");
 				break;
 			}
 
-			if (cmd.equals(F("uifragmentok")))
+			if (cmd == "uifragmentok")
 			{
-				if (!emptyString.equals(value))
+				if (!value.empty())
 					ProcessAck(0xFFFF, value);
 				else
 				{
@@ -163,7 +163,7 @@ bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t 
 				break;
 			}
 
-			if (cmd.equals(F("uiuok")))
+			if (cmd == "uiuok")
 				break;
 
 			const auto control = ui.getControl(id);
@@ -187,7 +187,7 @@ Prepare a chunk of elements as a single JSON string. If the allowed number of el
 number this will represent the entire UI. More likely, it will represent a small section of the UI to be sent. The
 client will acknowledge receipt by requesting the next chunk.
  */
-uint32_t esp_ui_client::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpdateMode, const String &value) const
+uint32_t esp_ui_client::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpdateMode, const std::string &value) const
 {
 	xSemaphoreTake(ui.ControlsSemaphore, portMAX_DELAY);
 
@@ -197,15 +197,15 @@ uint32_t esp_ui_client::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpd
 	// Follow the list until control points to the startindex node
 	const JsonArray items = rootDoc[F("controls")];
 
-	if (!emptyString.equals(value))
+	if (!value.empty())
 	{
 		// this is actually a fragment or directed update request
 		// parse the string we got from the UI and try to update that specific
 		// control.
 		JsonDocument FragmentRequest;
-		const size_t FragmentRequestStartOffset = value.indexOf("{");
+		const auto FragmentRequestStartOffset = value.find('{');
 		const DeserializationError error =
-				deserializeJson(FragmentRequest, value.substring(FragmentRequestStartOffset));
+				deserializeJson(FragmentRequest, value.substr(FragmentRequestStartOffset));
 		if (DeserializationError::Ok != error)
 		{
 			Serial.println(F("ERROR:prepareJSONChunk:Fragmentation:Could not extract json from the fragment request"));
@@ -213,7 +213,7 @@ uint32_t esp_ui_client::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpd
 			return 0;
 		}
 
-		if (!FragmentRequest["id"].is<String>())
+		if (!FragmentRequest["id"].is<std::string>())
 		{
 			Serial.println(F("ERROR:prepareJSONChunk:Fragmentation:Request does not contain a control ID"));
 			xSemaphoreGive(ui.ControlsSemaphore);
@@ -221,7 +221,7 @@ uint32_t esp_ui_client::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpd
 		}
 		const auto ControlId = FragmentRequest[F("id")].as<uint16_t>();
 
-		if (!FragmentRequest["offset"].is<String>())
+		if (!FragmentRequest["offset"].is<std::string>())
 		{
 			Serial.println(F("ERROR:prepareJSONChunk:Fragmentation:Request does not contain a starting offset"));
 			xSemaphoreGive(ui.ControlsSemaphore);
@@ -231,9 +231,9 @@ uint32_t esp_ui_client::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpd
 		const auto control = ui.getControlNoLock(ControlId);
 		if (nullptr == control)
 		{
-			Serial.println(
-				String(F("ERROR:prepareJSONChunk:Fragmentation:Requested control: ")) + String(ControlId) + F(
-					" does not exist"));
+			Serial.println((
+				std::string("ERROR:prepareJSONChunk:Fragmentation:Requested control: ") + std::to_string(ControlId) +
+				" does not exist").c_str());
 			xSemaphoreGive(ui.ControlsSemaphore);
 			return 0;
 		}
@@ -315,11 +315,11 @@ etc.
     Returns true if all controls have been sent (aka: Done)
 */
 bool esp_ui_client::SendControlsToClient(const uint16_t start_idx, const ClientUpdateType_t TransferMode,
-                                         const String &FragmentRequest)
+                                         const std::string &FragmentRequest)
 {
 	if (!CanSend())
 		return false;
-	if (start_idx >= ui.controls.size() && emptyString.equals(FragmentRequest))
+	if (start_idx >= ui.controls.size() && FragmentRequest.empty())
 		return true;
 
 	JsonDocument document;
@@ -329,7 +329,7 @@ bool esp_ui_client::SendControlsToClient(const uint16_t start_idx, const ClientU
 
 	if (0 == start_idx)
 	{
-		document["type"] = (ClientUpdateType_t::RebuildNeeded == TransferMode) ? InitialGui : ExtendGUI;
+		document["type"] = ClientUpdateType_t::RebuildNeeded == TransferMode ? InitialGui : ExtendGUI;
 		CurrentSyncID = NextSyncID;
 		NextSyncID = ui.GetNextControlChangeId();
 	}
@@ -346,10 +346,10 @@ bool esp_ui_client::SendJsonDocToWebSocket(const JsonDocument &document) const
 	if (!CanSend())
 		return false;
 
-	String json {};
+	std::string json {};
 	serializeJson(document, json);
 
-	client->text(json);
+	client->text(json.c_str());
 	return true;
 }
 

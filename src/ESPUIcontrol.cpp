@@ -3,10 +3,10 @@
 #include "ESPUI.hpp"
 
 static uint16_t idCounter = 0;
-static const String ControlError = "*** ESPUI ERROR: Could not transfer control ***";
+static const std::string ControlError = "*** ESPUI ERROR: Could not transfer control ***";
 
 Control::Control(ControlType type, const char *label, std::function<void(Control *, int)> callback,
-                 String value, ControlColor color, bool visible, const std::shared_ptr<Control> &parentControl):
+                 std::string value, ControlColor color, bool visible, const std::shared_ptr<Control> &parentControl):
 	type(type),
 	label(label),
 	callback(std::move(callback)),
@@ -93,7 +93,7 @@ bool Control::MarshalControl(const JsonObject &_item,
 	}
 
 	item[F("id")] = id;
-	ControlType TempType = (ControlType::Password == type) ? ControlType::Text : type;
+	ControlType TempType = ControlType::Password == type ? ControlType::Text : type;
 	if (refresh)
 	{
 		item[F("type")] = static_cast<uint32_t>(TempType) + static_cast<uint32_t>(ControlType::UpdateOffset);
@@ -104,19 +104,19 @@ bool Control::MarshalControl(const JsonObject &_item,
 
 	item[F("label")] = label;
 	item[F("value")] = ControlType::Password == type
-		                   ? F("--------")
-		                   : value.substring(DataOffset, DataOffset + ValueLenToSend);
+		                   ? "--------"
+		                   : value.substr(DataOffset, ValueLenToSend);
 	item[F("visible")] = visible;
 	item[F("color")] = static_cast<int>(color);
 	item[F("enabled")] = enabled;
 
-	if (!panelStyle.isEmpty()) { item[F("panelStyle")] = panelStyle; }
-	if (!elementStyle.isEmpty()) { item[F("elementStyle")] = elementStyle; }
-	if (!inputType.isEmpty()) { item[F("inputType")] = inputType; }
+	if (!panelStyle.empty()) { item[F("panelStyle")] = panelStyle; }
+	if (!elementStyle.empty()) { item[F("elementStyle")] = elementStyle; }
+	if (!inputType.empty()) { item[F("inputType")] = inputType; }
 	if (wide == true) { item[F("wide")] = true; }
 	if (vertical == true) { item[F("vertical")] = true; }
 	if (parentControl)
-		item[F("parentControl")] = String(parentControl->id);
+		item[F("parentControl")] = std::to_string(parentControl->id);
 
 	// special case for selects: to preselect an option, you have to add
 	// "selected" to <option>
@@ -149,67 +149,67 @@ void Control::MarshalErrorMessage(const JsonObject &item) const
 
 	if (parentControl)
 	{
-		item[F("parentControl")] = String(parentControl->id);
+		item[F("parentControl")] = std::to_string(parentControl->id);
 	}
 }
 
-void Control::onWsEvent(const String &cmd, const String &data, ESPUIClass &ui)
+void Control::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
 {
 	SetControlChangedId(ui.GetNextControlChangeId());
 	if (!HasCallback())
 		return;
 
-	if (cmd.equals(F("bdown")))
+	if (cmd == "bdown")
 		SendCallback(B_DOWN);
-	else if (cmd.equals(F("bup")))
+	else if (cmd == "bup")
 		SendCallback(B_UP);
-	else if (cmd.equals(F("pfdown")))
+	else if (cmd == "pfdown")
 		SendCallback(P_FOR_DOWN);
-	else if (cmd.equals(F("pfup")))
+	else if (cmd == "pfup")
 		SendCallback(P_FOR_UP);
-	else if (cmd.equals(F("pldown")))
+	else if (cmd == "pldown")
 		SendCallback(P_LEFT_DOWN);
-	else if (cmd.equals(F("plup")))
+	else if (cmd == "plup")
 		SendCallback(P_LEFT_UP);
-	else if (cmd.equals(F("prdown")))
+	else if (cmd == "prdown")
 		SendCallback(P_RIGHT_DOWN);
-	else if (cmd.equals(F("prup")))
+	else if (cmd == "prup")
 		SendCallback(P_RIGHT_UP);
-	else if (cmd.equals(F("pbdown")))
+	else if (cmd == "pbdown")
 		SendCallback(P_BACK_DOWN);
-	else if (cmd.equals(F("pbup")))
+	else if (cmd == "pbup")
 		SendCallback(P_BACK_UP);
-	else if (cmd.equals(F("pcdown")))
+	else if (cmd == "pcdown")
 		SendCallback(P_CENTER_DOWN);
-	else if (cmd.equals(F("pcup")))
+	else if (cmd == "pcup")
 		SendCallback(P_CENTER_UP);
-	else if (cmd.equals(F("sactive")))
+	else if (cmd == "sactive")
 	{
 		value = "1";
 		SendCallback(S_ACTIVE);
-	} else if (cmd.equals(F("sinactive")))
+	} else if (cmd == "sinactive")
 	{
 		value = "0";
 		SendCallback(S_INACTIVE);
-	} else if (cmd.equals(F("slvalue")))
+	} else if (cmd == "slvalue")
 	{
 		value = data;
 		SendCallback(SL_VALUE);
-	} else if (cmd.equals(F("nvalue")))
+	} else if (cmd == "nvalue")
 	{
 		value = data;
 		SendCallback(N_VALUE);
-	} else if (cmd.equals(F("tvalue")))
+	} else if (cmd == "tvalue")
 	{
 		value = data;
 		SendCallback(T_VALUE);
-	} else if (cmd.equals(F("tabvalue")))
+	} else if (cmd == "tabvalue")
 		SendCallback(0);
-	else if (cmd.equals(F("svalue")))
+	else if (cmd == "svalue")
 	{
 		value = data;
 		SendCallback(S_VALUE);
-	} else if (cmd.equals(F("time")))
+	} else if (cmd == "time")
 	{
 		value = data;
 		SendCallback(TM_VALUE);

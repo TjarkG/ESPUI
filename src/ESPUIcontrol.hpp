@@ -59,23 +59,23 @@ public:
 	uint16_t id; // just mirroring the id here for practical reasons
 	const char *label;
 	std::function<void(Control *, int)> callback;
-	String value;
+	std::string value;
 	ControlColor color;
 	bool visible;
 	bool wide {false};
 	bool vertical {false};
 	bool enabled {true};
 	std::shared_ptr<Control>  parentControl;
-	String panelStyle;
-	String elementStyle;
-	String inputType;
+	std::string panelStyle;
+	std::string elementStyle;
+	std::string inputType;
 
 	static constexpr uint16_t noParent = 0xffff;
 
 	Control(ControlType type,
 	        const char *label,
 	        std::function<void(Control *, int)> callback,
-	        String value,
+	        std::string value,
 	        ControlColor color,
 	        bool visible,
 	        const std::shared_ptr<Control>& parentControl);
@@ -91,7 +91,7 @@ public:
 
 	void MarshalErrorMessage(const JsonObject &item) const;
 
-	void onWsEvent(const String &cmd, const String &data, ESPUIClass &ui);
+	void onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui);
 
 	bool NeedsSync(const uint32_t lastControlChangeID) const
 	{
@@ -102,7 +102,7 @@ public:
 
 private:
 	uint32_t ControlChangeID = 0;
-	String OldValue = emptyString;
+	std::string OldValue;
 
 	// multiplier for converting a typical controller label or value to a Json object
 	static constexpr auto JsonMarshalingRatio {3};
