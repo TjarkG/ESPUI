@@ -12,11 +12,14 @@ from glob import glob
 
 TARGET_TEMPLATE = '''#pragma once
 
+const uint8_t {constant}_GZIP[{gziplen}] PROGMEM = {{ {gzipdata} }};
+'''
+
+HTML_TEMPLATE = '''#pragma once
+
 constexpr auto {constant} PROGMEM = R"=====(
 {minidata}
 )=====";
-
-const uint8_t {constant}_GZIP[{gziplen}] PROGMEM = {{ {gzipdata} }};
 '''
 
 
@@ -97,7 +100,10 @@ def process_file(infile, outdir, storemini=True):
     with open(c['outfile'], 'w+') as outfile:
         print("  Using C constant names %s and %s_GZIP" % (c['constant'], c['constant']))
         print("  Writing C header file %s" % c['outfile'])
-        outfile.write(TARGET_TEMPLATE.format(**c))
+        if c['type'] == 'html':
+            outfile.write(HTML_TEMPLATE.format(**c))
+        else:
+            outfile.write(TARGET_TEMPLATE.format(**c))
 
 
 def filenamefilter(pattern, strings):

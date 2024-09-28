@@ -1,7 +1,6 @@
 #pragma once
 
 #include <ArduinoJson.h>
-#include <LittleFS.h>
 #include <map>
 #include <ESPAsyncWebServer.h>
 
@@ -73,8 +72,6 @@ protected:
 
 	Verbosity verbosity = Verbosity::Quiet;
 
-	fs::LittleFSFS &EspuiLittleFS = LittleFS;
-
 	void NotifyClients(ClientUpdateType_t newState) const;
 
 	void NotifyClient(uint32_t WsClientId, ClientUpdateType_t newState);
@@ -95,19 +92,6 @@ public:
 	void setVerbosity(const Verbosity v) { verbosity = v; }
 
 	void begin(const char *_title, uint16_t port = 80); // Setup server and page in Memory mode
-	void beginLITTLEFS(const char *_title, uint16_t port = 80); // Setup server and page in LITTLEFS mode
-
-	// Initially preps the filesystem and loads a lot of stuff into LITTLEFS
-	void prepareFileSystem(bool format = true) const;
-
-	// Lists LITTLEFS directory
-	void list();
-
-	void listDir(const char *dirname, uint8_t levels);
-
-	void deleteFile(const char *path) const;
-
-	void writeFile(const char *path, const char *data) const;
 
 	std::shared_ptr<Control> addControl(const Control& control);
 
