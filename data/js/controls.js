@@ -741,7 +741,7 @@ function start() {
                 break;
 
             default:
-                console.error("Unknown type or event");
+                console.error("Unknown type or event: " + data.type);
                 break;
         }
 

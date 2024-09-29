@@ -12,10 +12,10 @@
 // Message Types
 enum MessageTypes : uint8_t
 {
-	InitialGui = 200,
-	Reload = 201,
-	ExtendGUI = 210,
-	UpdateGui = 220,
+	InitialGui        = 200,
+	Reload            = 201,
+	ExtendGUI         = 210,
+	UpdateGui         = 220,
 	ExtendedUpdateGui = 230,
 };
 
@@ -45,20 +45,12 @@ enum MessageTypes : uint8_t
 
 class ESPUIClass
 {
-public:
-	enum class Verbosity : uint8_t
-	{
-		Quiet = 0,
-		Verbose,
-		VerboseJSON
-	};
-
 protected:
 	friend class esp_ui_client;
 
 	SemaphoreHandle_t ControlsSemaphore;
 
-	// Store UI Title and Header Name
+	// Store UI Title
 	const char *ui_title = "ESPUI";
 
 	AsyncWebServer *server {};
@@ -66,17 +58,15 @@ protected:
 
 	std::map<uint32_t, esp_ui_client *> MapOfClients;
 
-	std::vector<std::shared_ptr<Control>> controls;
+	std::vector<std::shared_ptr<Control> > controls;
 
 	uint32_t ControlChangeID = 0;
-
-	Verbosity verbosity = Verbosity::Quiet;
 
 	void NotifyClients(ClientUpdateType_t newState) const;
 
 	void NotifyClient(uint32_t WsClientId, ClientUpdateType_t newState);
 
-	bool SendJsonDocToWebSocket(const JsonDocument &document, uint16_t clientId);
+	void SendJsonDocToWebSocket(const JsonDocument &document, int clientId);
 
 public:
 	ESPUIClass()
@@ -89,21 +79,17 @@ public:
 	               const uint8_t *data,
 	               size_t len);
 
-	void setVerbosity(const Verbosity v) { verbosity = v; }
-
 	void begin(const char *_title, uint16_t port = 80); // Setup server and page in Memory mode
 
-	std::shared_ptr<Control> addControl(const Control& control);
+	std::shared_ptr<Control> addControl(const Control &control);
 
 	std::shared_ptr<Control> addControl(ControlType type, const std::string &label, const std::string &value = "",
 	                                    ControlColor color = ControlColor::Turquoise,
-	                                    const std::shared_ptr<Control>& parentControl = nullptr);
+	                                    const std::shared_ptr<Control> &parentControl = nullptr,
+	                                    const std::function<void(Control *, int)> &callback = nullptr);
 
-	std::shared_ptr<Control> addControl(ControlType type, const std::string &label, const std::string &value, ControlColor color,
-	                                    const std::shared_ptr<Control>& parentControl,
-	                                    const std::function<void(Control *, int)> &callback);
 
-	void removeControl(const std::shared_ptr<Control>& control, bool force_rebuild_ui = false);
+	void removeControl(const std::shared_ptr<Control> &control, bool force_rebuild_ui = false);
 
 	std::shared_ptr<Control> getControl(uint16_t id) const;
 
@@ -156,12 +142,5 @@ public:
 
 	void jsonReload() const;
 
-	void jsonDom(uint16_t start_idx, AsyncWebSocketClient *client = nullptr, bool Updating = false) const;
-
-
 	uint32_t GetNextControlChangeId();
-
-	AsyncWebServer *WebServer() const { return server; }
-
-	AsyncWebSocket *WebSocket() const { return ws; }
 };

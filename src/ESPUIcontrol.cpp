@@ -31,23 +31,15 @@ Control::Control(const Control &Control) :
 	parentControl(Control.parentControl),
 	ControlChangeID(Control.ControlChangeID) {}
 
-void Control::SendCallback(const int type)
-{
-	if (callback)
-		callback(this, type);
-}
-
-bool Control::MarshalControl(const JsonObject &_item,
+bool Control::MarshalControl(const JsonObject &item,
                              const bool refresh,
                              const uint32_t DataOffset,
                              const uint32_t MaxLength,
                              uint32_t &EstimatedUsedSpace) const
 {
 	// this code assumes MaxMarshaledLength > JsonMarshalingRatio
-
-	bool ControlIsFragmented = false;
-	// create a new item in the response document
-	const JsonObject &item = _item;
+	if(refresh && type == ControlType::Tab)
+		return false;
 
 	// how much space do we expect to use?
 	const uint32_t LabelMarshaledLength = label.length() * JsonMarshalingRatio;
@@ -80,17 +72,14 @@ bool Control::MarshalControl(const JsonObject &_item,
 	// are we fragmenting?
 	if (NeedToFragment || DataOffset)
 	{
-		// indicate that no additional controls should be sent
-		ControlIsFragmented = true;
-
 		// fill in the fragment header
-		_item[F("type")] = static_cast<uint32_t>(ControlType::Fragment);
-		_item[F("id")] = id;
+		item[F("type")] = static_cast<uint32_t>(ControlType::Fragment);
+		item[F("id")] = id;
 
-		_item[F("offset")] = DataOffset;
-		_item[F("length")] = ValueLenToSend;
-		_item[F("total")] = value.length();
-		item[F("control")] = _item;
+		item[F("offset")] = DataOffset;
+		item[F("length")] = ValueLenToSend;
+		item[F("total")] = value.length();
+		item[F("control")] = item;
 	}
 
 	item[F("id")] = id;
@@ -133,7 +122,8 @@ bool Control::MarshalControl(const JsonObject &_item,
 		}
 	}
 
-	return ControlIsFragmented;
+	// indicate that no additional controls should be sent if fragmenting is on
+	return NeedToFragment || DataOffset;
 }
 
 void Control::MarshalErrorMessage(const JsonObject &item) const
@@ -155,8 +145,6 @@ void Control::MarshalErrorMessage(const JsonObject &item) const
 void Control::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
 {
 	SetControlChangedId(ui.GetNextControlChangeId());
-	if (!HasCallback())
-		return;
 
 	if (cmd == "bdown")
 		SendCallback(B_DOWN);

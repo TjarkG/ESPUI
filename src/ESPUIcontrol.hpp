@@ -34,8 +34,8 @@ enum class ControlType : uint8_t
 	Time,
 	FileDisplay,
 
-	Fragment = 98,
-	Password = 99,
+	Fragment     = 98,
+	Password     = 99,
 	UpdateOffset = 100,
 };
 
@@ -65,7 +65,7 @@ public:
 	bool wide {false};
 	bool vertical {false};
 	bool enabled {true};
-	std::shared_ptr<Control>  parentControl;
+	std::shared_ptr<Control> parentControl;
 	std::string panelStyle;
 	std::string elementStyle;
 	std::string inputType;
@@ -78,13 +78,15 @@ public:
 	        std::string value,
 	        ControlColor color,
 	        bool visible,
-	        const std::shared_ptr<Control>& parentControl);
+	        const std::shared_ptr<Control> &parentControl);
 
 	Control(const Control &Control);
 
-	void SendCallback(int type);
-
-	bool HasCallback() const { return nullptr != callback; }
+	void SendCallback(const int type)
+	{
+		if (callback)
+			callback(this, type);
+	}
 
 	bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
 	                    uint32_t &EstimatedUsedSpace) const;
@@ -95,10 +97,13 @@ public:
 
 	bool NeedsSync(const uint32_t lastControlChangeID) const
 	{
-		return (lastControlChangeID < ControlChangeID);
+		return lastControlChangeID < ControlChangeID;
 	}
 
-	void SetControlChangedId(const uint32_t value) { ControlChangeID = value; }
+	void SetControlChangedId(const uint32_t value)
+	{
+		ControlChangeID = value;
+	}
 
 private:
 	uint32_t ControlChangeID = 0;

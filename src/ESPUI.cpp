@@ -67,22 +67,11 @@ std::shared_ptr<Control> ESPUIClass::addControl(const Control &control)
 
 std::shared_ptr<Control> ESPUIClass::addControl(
 	const ControlType type, const std::string &label, const std::string &value, const ControlColor color,
-	const std::shared_ptr<Control> &parentControl)
+	const std::shared_ptr<Control> &parentControl, const std::function<void(Control *, int)> &callback)
 {
-	const Control control = {type, label, nullptr, value, color, true, parentControl};
+	const Control control = {type, label, callback, value, color, true, parentControl};
 
 	return addControl(control);
-}
-
-std::shared_ptr<Control> ESPUIClass::addControl(const ControlType type, const std::string &label, const std::string &value,
-                                                const ControlColor color,
-                                                const std::shared_ptr<Control> &parentControl,
-                                                const std::function<void(Control *, int)> &callback)
-{
-	auto control = addControl(type, label, value, color, parentControl);
-	// set the original style callback
-	control->callback = callback;
-	return control;
 }
 
 void ESPUIClass::removeControl(const std::shared_ptr<Control> &control, const bool force_rebuild_ui)
@@ -93,12 +82,9 @@ void ESPUIClass::removeControl(const std::shared_ptr<Control> &control, const bo
 	xSemaphoreGive(ControlsSemaphore);
 
 	if (force_rebuild_ui)
-	{
 		jsonReload();
-	} else
-	{
+	else
 		NotifyClients(ClientUpdateType_t::RebuildNeeded);
-	}
 }
 
 std::shared_ptr<Control> ESPUIClass::getControl(const uint16_t id) const
@@ -131,11 +117,10 @@ void ESPUIClass::updateControl(Control &control, int)
 
 uint32_t ESPUIClass::GetNextControlChangeId()
 {
+	// force a reload which resets the counters
 	if (static_cast<uint32_t>(-1) == ControlChangeID)
-	{
-		// force a reload which resets the counters
 		jsonReload();
-	}
+
 	return ++ControlChangeID;
 }
 
@@ -267,39 +252,25 @@ void ESPUIClass::addGraphPoint(const Control &control, const int nValue, const i
 	SendJsonDocToWebSocket(document, clientId);
 }
 
-bool ESPUIClass::SendJsonDocToWebSocket(const ArduinoJson::JsonDocument &document, const uint16_t clientId)
+void ESPUIClass::SendJsonDocToWebSocket(const JsonDocument &document, const int clientId)
 {
-	bool Response = false;
-
-	if (0 > clientId)
+	if (clientId >= 0)
 	{
 		if (MapOfClients.end() != MapOfClients.find(clientId))
-		{
-			Response = MapOfClients[clientId]->SendJsonDocToWebSocket(document);
-		}
-	} else
-	{
-		for (const auto CurrentClient: MapOfClients)
-		{
-			Response |= CurrentClient.second->SendJsonDocToWebSocket(document);
-		}
+			(void) MapOfClients[clientId]->SendJsonDocToWebSocket(document);
+
+		return;
 	}
 
-	return Response;
-}
-
-void ESPUIClass::jsonDom(uint16_t, AsyncWebSocketClient *, bool) const
-{
-	NotifyClients(ClientUpdateType_t::RebuildNeeded);
+	for (const auto CurrentClient: MapOfClients)
+		(void) CurrentClient.second->SendJsonDocToWebSocket(document);
 }
 
 // Tell all the clients that they need to ask for an upload of the control data.
 void ESPUIClass::NotifyClients(const ClientUpdateType_t newState) const
 {
 	for (const auto &CurrentClient: MapOfClients)
-	{
 		CurrentClient.second->NotifyClient(newState);
-	}
 }
 
 void ESPUIClass::jsonReload() const
