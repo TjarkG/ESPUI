@@ -47,6 +47,7 @@ class ESPUIClass
 {
 protected:
 	friend class esp_ui_client;
+	friend class Control;
 
 	SemaphoreHandle_t ControlsSemaphore;
 
@@ -83,11 +84,9 @@ public:
 
 	std::shared_ptr<Control> addControl(const Control &control);
 
-	std::shared_ptr<Control> addControl(ControlType type, const std::string &label, const std::string &value = "",
-	                                    ControlColor color = ControlColor::Turquoise,
-	                                    const std::shared_ptr<Control> &parentControl = nullptr,
-	                                    const std::function<void(Control *, int)> &callback = nullptr);
-
+	std::shared_ptr<Control> add(ControlType type, const std::string &label = "", const std::string &value = "",
+	                             ControlColor color = ControlColor::None,
+	                             const std::function<void(Control *, int)> &callback = nullptr);
 
 	void removeControl(const std::shared_ptr<Control> &control, bool force_rebuild_ui = false);
 

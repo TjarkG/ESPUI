@@ -2,43 +2,50 @@
 
 #include "ESPUI.hpp"
 
-static uint16_t idCounter = 0;
 static const std::string ControlError = "*** ESPUI ERROR: Could not transfer control ***";
 
 Control::Control(const ControlType type, std::string label, std::function<void(Control *, int)> callback,
                  std::string value, const ControlColor color, const bool visible,
-                 const std::shared_ptr<Control> &parentControl):
+                 const std::shared_ptr<Control> &parentControl, ESPUIClass &ui):
+	ui(ui),
+	parentControl(parentControl),
 	type(type),
 	label(std::move(label)),
 	callback(std::move(callback)),
 	value(std::move(value)),
 	color(color),
-	visible(visible),
-	parentControl(parentControl)
+	visible(visible)
 {
+	static uint16_t idCounter = 0;
 	id = ++idCounter;
 	ControlChangeID = 1;
 }
 
 Control::Control(const Control &Control) :
+	ui(Control.ui),
+	parentControl(Control.parentControl),
 	type(Control.type),
 	id(Control.id),
 	label(Control.label),
 	callback(Control.callback),
 	value(Control.value),
-	color(Control.color),
-	visible(Control.visible),
-	parentControl(Control.parentControl),
+	color(Control.color), visible(Control.visible),
 	ControlChangeID(Control.ControlChangeID) {}
 
-bool Control::MarshalControl(const JsonObject &item,
-                             const bool refresh,
-                             const uint32_t DataOffset,
-                             const uint32_t MaxLength,
-                             uint32_t &EstimatedUsedSpace) const
+std::shared_ptr<Control> Control::add(const ControlType type, const std::string &label, const std::string &value,
+                                      const ControlColor color, const std::function<void(Control *, int)> &callback,
+                                      const bool visible)
+{
+	const Control control = {type, label, callback, value, color, visible, std::shared_ptr<Control>(this), ui};
+
+	return ui.addControl(control);
+}
+
+bool Control::MarshalControl(const JsonObject &item, const bool refresh, const uint32_t DataOffset,
+                             const uint32_t MaxLength, uint32_t &EstimatedUsedSpace) const
 {
 	// this code assumes MaxMarshaledLength > JsonMarshalingRatio
-	if(refresh && type == ControlType::Tab)
+	if (refresh && type == ControlType::Tab)
 		return false;
 
 	// how much space do we expect to use?

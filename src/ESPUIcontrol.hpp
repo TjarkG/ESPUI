@@ -54,9 +54,12 @@ enum class ControlColor : uint8_t
 
 class Control
 {
+	ESPUIClass &ui;
+	std::shared_ptr<Control> parentControl;
+
 public:
 	ControlType type;
-	uint16_t id; // just mirroring the id here for practical reasons
+	uint16_t id;
 	std::string label;
 	std::function<void(Control *, int)> callback;
 	std::string value;
@@ -65,20 +68,14 @@ public:
 	bool wide {false};
 	bool vertical {false};
 	bool enabled {true};
-	std::shared_ptr<Control> parentControl;
 	std::string panelStyle;
 	std::string elementStyle;
 	std::string inputType;
 
 	static constexpr uint16_t noParent = 0xffff;
 
-	Control(ControlType type,
-	        std::string label,
-	        std::function<void(Control *, int)> callback,
-	        std::string value,
-	        ControlColor color,
-	        bool visible,
-	        const std::shared_ptr<Control> &parentControl);
+	Control(ControlType type, std::string label, std::function<void(Control *, int)> callback, std::string value,
+	        ControlColor color, bool visible, const std::shared_ptr<Control> &parentControl, ESPUIClass &ui);
 
 	Control(const Control &Control);
 
@@ -104,6 +101,10 @@ public:
 	{
 		ControlChangeID = value;
 	}
+
+	std::shared_ptr<Control> add(ControlType type, const std::string &label = "", const std::string &value = "",
+	                             ControlColor color = ControlColor::None,
+	                             const std::function<void(Control *, int)> &callback = nullptr, bool visible = true);
 
 private:
 	uint32_t ControlChangeID = 0;

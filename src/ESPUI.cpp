@@ -65,11 +65,13 @@ std::shared_ptr<Control> ESPUIClass::addControl(const Control &control)
 	return controls.back();
 }
 
-std::shared_ptr<Control> ESPUIClass::addControl(
-	const ControlType type, const std::string &label, const std::string &value, const ControlColor color,
-	const std::shared_ptr<Control> &parentControl, const std::function<void(Control *, int)> &callback)
+std::shared_ptr<Control> ESPUIClass::add(const ControlType type,
+                                         const std::string &label,
+                                         const std::string &value,
+                                         const ControlColor color,
+                                         const std::function<void(Control *, int)> &callback)
 {
-	const Control control = {type, label, callback, value, color, true, parentControl};
+	const Control control = {type, label, callback, value, color, true, nullptr, *this};
 
 	return addControl(control);
 }
