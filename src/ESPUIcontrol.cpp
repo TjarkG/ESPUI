@@ -4,7 +4,7 @@
 
 static const std::string ControlError = "*** ESPUI ERROR: Could not transfer control ***";
 
-Control::Control(const ControlType type, std::string label, std::function<void(Control *, int)> callback,
+Control::Control(const ControlType type, std::string label, std::function<void(Control *, UpdateType)> callback,
                  std::string value, const ControlColor color, const bool visible,
                  const std::shared_ptr<Control> &parentControl, ESPUIClass &ui):
 	ui(ui),
@@ -34,7 +34,8 @@ Control::Control(const Control &Control) : // NOLINT(*-copy-constructor-init)
 	ControlChangeID(Control.ControlChangeID) {}
 
 std::shared_ptr<Control> Control::add(const ControlType type, const std::string &label, const std::string &value,
-                                      const ControlColor color, const std::function<void(Control *, int)> &callback,
+                                      const ControlColor color,
+                                      const std::function<void(Control *, UpdateType)> &callback,
                                       const bool visible)
 {
 	const Control control = {type, label, callback, value, color, visible, shared_from_this(), ui};
@@ -167,63 +168,63 @@ void Control::MarshalErrorMessage(const JsonObject &item) const
 	}
 }
 
-void Control::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
+void Control::onWsEvent(const std::string &cmd, const std::string &data, const ESPUIClass &ui)
 {
 	SetControlChangedId(ui.GetNextControlChangeId());
 
 	if (cmd == "buttonDown")
-		SendCallback(B_DOWN);
+		SendCallback(UpdateType::ButtonDown);
 	else if (cmd == "buttonUP")
-		SendCallback(B_UP);
+		SendCallback(UpdateType::ButtonUp);
 	else if (cmd == "padForwardDown")
-		SendCallback(P_FOR_DOWN);
+		SendCallback(UpdateType::PadForwardDown);
 	else if (cmd == "padForwardUp")
-		SendCallback(P_FOR_UP);
+		SendCallback(UpdateType::PadForwardUp);
 	else if (cmd == "padLeftDown")
-		SendCallback(P_LEFT_DOWN);
+		SendCallback(UpdateType::PadLeftDown);
 	else if (cmd == "padLeftUp")
-		SendCallback(P_LEFT_UP);
+		SendCallback(UpdateType::PadLeftUp);
 	else if (cmd == "padRightDown")
-		SendCallback(P_RIGHT_DOWN);
+		SendCallback(UpdateType::PadRightDown);
 	else if (cmd == "padRightUp")
-		SendCallback(P_RIGHT_UP);
+		SendCallback(UpdateType::PadRightUp);
 	else if (cmd == "padBackDown")
-		SendCallback(P_BACK_DOWN);
+		SendCallback(UpdateType::PadBackDown);
 	else if (cmd == "padBackUp")
-		SendCallback(P_BACK_UP);
+		SendCallback(UpdateType::PadBackUp);
 	else if (cmd == "padCenterDown")
-		SendCallback(P_CENTER_DOWN);
+		SendCallback(UpdateType::PadCenterDown);
 	else if (cmd == "padCenterUp")
-		SendCallback(P_CENTER_UP);
+		SendCallback(UpdateType::PadCenterUp);
 	else if (cmd == "switchActive")
 	{
 		value = "1";
-		SendCallback(S_ACTIVE);
+		SendCallback(UpdateType::SwitchOn);
 	} else if (cmd == "switchInactive")
 	{
 		value = "0";
-		SendCallback(S_INACTIVE);
+		SendCallback(UpdateType::SwitchOff);
 	} else if (cmd == "sliderValue")
 	{
 		value = data;
-		SendCallback(SL_VALUE);
+		SendCallback(UpdateType::Slider);
 	} else if (cmd == "numberValue")
 	{
 		value = data;
-		SendCallback(N_VALUE);
+		SendCallback(UpdateType::Number);
 	} else if (cmd == "textValue")
 	{
 		value = data;
-		SendCallback(T_VALUE);
+		SendCallback(UpdateType::Text);
 	} else if (cmd == "tabValue")
-		SendCallback(0);
+		SendCallback(UpdateType::TabValue);
 	else if (cmd == "selectValue")
 	{
 		value = data;
-		SendCallback(S_VALUE);
+		SendCallback(UpdateType::SelectChanged);
 	} else if (cmd == "time")
 	{
 		value = data;
-		SendCallback(TM_VALUE);
+		SendCallback(UpdateType::Time);
 	}
 }

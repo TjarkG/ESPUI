@@ -6,6 +6,8 @@
 
 class ESPUIClass;
 
+enum class UpdateType : uint8_t;
+
 enum class ControlType : uint8_t
 {
 	// fixed Controls
@@ -52,7 +54,7 @@ enum class ControlColor : uint8_t
 	None = 0xFF
 };
 
-class Control: public std::enable_shared_from_this<Control>
+class Control : public std::enable_shared_from_this<Control>
 {
 	ESPUIClass &ui;
 	std::shared_ptr<Control> parentControl;
@@ -61,7 +63,7 @@ public:
 	ControlType type;
 	uint16_t id;
 	std::string label;
-	std::function<void(Control *, int)> callback;
+	std::function<void(Control *, UpdateType)> callback;
 	std::string value;
 	ControlColor color;
 	bool visible;
@@ -74,12 +76,12 @@ public:
 
 	static constexpr uint16_t noParent = 0xffff;
 
-	Control(ControlType type, std::string label, std::function<void(Control *, int)> callback, std::string value,
+	Control(ControlType type, std::string label, std::function<void(Control *, UpdateType)> callback, std::string value,
 	        ControlColor color, bool visible, const std::shared_ptr<Control> &parentControl, ESPUIClass &ui);
 
 	Control(const Control &Control);
 
-	void SendCallback(const int type)
+	void SendCallback(const UpdateType type)
 	{
 		if (callback)
 			callback(this, type);
@@ -90,7 +92,7 @@ public:
 
 	void MarshalErrorMessage(const JsonObject &item) const;
 
-	void onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui);
+	void onWsEvent(const std::string &cmd, const std::string &data, const ESPUIClass &ui);
 
 	bool NeedsSync(const uint32_t lastControlChangeID) const
 	{
@@ -105,7 +107,8 @@ public:
 	//Add Child Control
 	std::shared_ptr<Control> add(ControlType type, const std::string &label = "", const std::string &value = "",
 	                             ControlColor color = ControlColor::None,
-	                             const std::function<void(Control *, int)> &callback = nullptr, bool visible = true);
+	                             const std::function<void(Control *, UpdateType)> &callback = nullptr,
+	                             bool visible = true);
 
 	//Remove this Control
 	void remove(bool force_rebuild_ui = false) const;

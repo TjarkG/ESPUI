@@ -6,6 +6,17 @@
 
 class ESPUIClass;
 
+
+// Message Types
+enum MessageTypes : uint8_t
+{
+	InitialGui        = 200,
+	Reload            = 201,
+	ExtendGUI         = 210,
+	UpdateGui         = 220,
+	ExtendedUpdateGui = 230,
+};
+
 enum class ClientUpdateType_t
 {
 	// this is an ordered list. highest number is the highest priority
