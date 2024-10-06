@@ -21,7 +21,7 @@ Control::Control(const ControlType type, std::string label, std::function<void(C
 	ControlChangeID = 1;
 }
 
-Control::Control(const Control &Control) :
+Control::Control(const Control &Control) : // NOLINT(*-copy-constructor-init)
 	ui(Control.ui),
 	parentControl(Control.parentControl),
 	type(Control.type),
@@ -36,7 +36,7 @@ std::shared_ptr<Control> Control::add(const ControlType type, const std::string 
                                       const ControlColor color, const std::function<void(Control *, int)> &callback,
                                       const bool visible)
 {
-	const Control control = {type, label, callback, value, color, visible, std::shared_ptr<Control>(this), ui};
+	const Control control = {type, label, callback, value, color, visible, shared_from_this(), ui};
 
 	return ui.addControl(control);
 }

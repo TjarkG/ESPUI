@@ -52,7 +52,7 @@ enum class ControlColor : uint8_t
 	None = 0xFF
 };
 
-class Control
+class Control: public std::enable_shared_from_this<Control>
 {
 	ESPUIClass &ui;
 	std::shared_ptr<Control> parentControl;
