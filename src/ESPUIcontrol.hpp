@@ -102,9 +102,13 @@ public:
 		ControlChangeID = value;
 	}
 
+	//Add Child Control
 	std::shared_ptr<Control> add(ControlType type, const std::string &label = "", const std::string &value = "",
 	                             ControlColor color = ControlColor::None,
 	                             const std::function<void(Control *, int)> &callback = nullptr, bool visible = true);
+
+	//Remove this Control
+	void remove(bool force_rebuild_ui = false) const;
 
 private:
 	uint32_t ControlChangeID = 0;

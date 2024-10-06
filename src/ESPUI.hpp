@@ -8,6 +8,7 @@
 #include "ESPUIclient.hpp"
 
 #include <AsyncTCP.h>
+#include <list>
 
 // Message Types
 enum MessageTypes : uint8_t
@@ -59,7 +60,7 @@ protected:
 
 	std::map<uint32_t, esp_ui_client *> MapOfClients;
 
-	std::vector<std::shared_ptr<Control> > controls;
+	std::list<std::shared_ptr<Control> > controls;
 
 	uint32_t ControlChangeID = 0;
 

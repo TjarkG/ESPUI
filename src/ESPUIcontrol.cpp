@@ -41,6 +41,23 @@ std::shared_ptr<Control> Control::add(const ControlType type, const std::string 
 	return ui.addControl(control);
 }
 
+void Control::remove(const bool force_rebuild_ui) const
+{
+	xSemaphoreTake(ui.ControlsSemaphore, portMAX_DELAY);
+	const auto it = std::find_if(ui.controls.begin(), ui.controls.end(), [this](const std::shared_ptr<Control> &i)
+	{
+		return i.get() == this;
+	});
+
+	ui.controls.erase(it);
+	xSemaphoreGive(ui.ControlsSemaphore);
+
+	if (force_rebuild_ui)
+		ui.jsonReload();
+	else
+		ui.NotifyClients(ClientUpdateType_t::RebuildNeeded);
+}
+
 bool Control::MarshalControl(const JsonObject &item, const bool refresh, const uint32_t DataOffset,
                              const uint32_t MaxLength, uint32_t &EstimatedUsedSpace) const
 {
