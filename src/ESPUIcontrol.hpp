@@ -92,7 +92,7 @@ public:
 
 	void MarshalErrorMessage(const JsonObject &item) const;
 
-	void onWsEvent(const std::string &cmd, const std::string &data, const ESPUIClass &ui);
+	void onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui);
 
 	bool NeedsSync(const uint32_t lastControlChangeID) const
 	{

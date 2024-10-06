@@ -2,7 +2,7 @@
 #include "ESPUI.hpp"
 #include "ESPUIcontrol.hpp"
 
-bool esp_ui_client::NotifyClient()
+bool WebsocketClient::NotifyClient()
 {
 	if (ClientState != ClientState_t::Idle)
 		return true;
@@ -38,7 +38,7 @@ bool esp_ui_client::NotifyClient()
 	return false;
 }
 
-void esp_ui_client::ProcessAck(const uint16_t id, const std::string &FragmentRequest)
+void WebsocketClient::ProcessAck(const uint16_t id, const std::string &FragmentRequest)
 {
 	switch (ClientState)
 	{
@@ -75,14 +75,14 @@ void esp_ui_client::ProcessAck(const uint16_t id, const std::string &FragmentReq
 	}
 }
 
-bool esp_ui_client::CanSend() const
+bool WebsocketClient::CanSend() const
 {
 	if (client)
 		return client->canSend();
 	return false;
 }
 
-void esp_ui_client::FillInHeader(JsonDocument &document) const
+void WebsocketClient::FillInHeader(JsonDocument &document) const
 {
 	document[F("type")] = ExtendGUI;
 	document[F("sliderContinuous")] = sliderContinuous;
@@ -91,15 +91,15 @@ void esp_ui_client::FillInHeader(JsonDocument &document) const
 	const JsonArray items = document[F("controls")].to<JsonArray>();
 	const JsonObject titleItem = items.add<JsonObject>();
 	titleItem[F("type")] = static_cast<int>(ControlType::Title);
-	titleItem[F("label")] = ui.ui_title;
+	titleItem[F("label")] = ui.uiTitle;
 }
 
-bool esp_ui_client::IsSynchronized() const
+bool WebsocketClient::IsSynchronized() const
 {
 	return ClientUpdateType_t::Synchronized == ClientUpdateType && ClientState == ClientState_t::Idle;
 }
 
-bool esp_ui_client::SendClientNotification(const ClientUpdateType_t value) const
+bool WebsocketClient::SendClientNotification(const ClientUpdateType_t value) const
 {
 	if (!CanSend())
 		return false;
@@ -114,14 +114,14 @@ bool esp_ui_client::SendClientNotification(const ClientUpdateType_t value) const
 	return Response;
 }
 
-void esp_ui_client::NotifyClient(const ClientUpdateType_t value)
+void WebsocketClient::NotifyClient(const ClientUpdateType_t value)
 {
 	SetState(value);
 	NotifyClient();
 }
 
 // Handle Websockets Communication
-bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t *data, const size_t len)
+bool WebsocketClient::onWsEvent(const AwsEventType type, void *arg, const uint8_t *data, const size_t len)
 {
 	bool Response = false;
 
@@ -161,7 +161,7 @@ bool esp_ui_client::onWsEvent(const AwsEventType type, void *arg, const uint8_t 
 				else
 				{
 					Serial.println(F(
-						"ERROR:esp_ui_client::OnWsEvent:WS_EVT_DATA:uifragmentok:ProcessAck:Fragment Header is missing"));
+						"ERROR:WebsocketClient::OnWsEvent:WS_EVT_DATA:uifragmentok:ProcessAck:Fragment Header is missing"));
 				}
 				break;
 			}
@@ -190,7 +190,7 @@ Prepare a chunk of elements as a single JSON string. If the allowed number of el
 number this will represent the entire UI. More likely, it will represent a small section of the UI to be sent. The
 client will acknowledge receipt by requesting the next chunk.
  */
-uint32_t esp_ui_client::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpdateMode, const std::string &value) const
+uint32_t WebsocketClient::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpdateMode, const std::string &value) const
 {
 	xSemaphoreTake(ui.ControlsSemaphore, portMAX_DELAY);
 
@@ -317,7 +317,7 @@ CLIENT: controls.js:handleEvent()
 etc.
     Returns true if all controls have been sent (aka: Done)
 */
-bool esp_ui_client::SendControlsToClient(const uint16_t start_idx, const ClientUpdateType_t TransferMode,
+bool WebsocketClient::SendControlsToClient(const uint16_t start_idx, const ClientUpdateType_t TransferMode,
                                          const std::string &FragmentRequest)
 {
 	if (!CanSend())
@@ -344,7 +344,7 @@ bool esp_ui_client::SendControlsToClient(const uint16_t start_idx, const ClientU
 	return true;
 }
 
-bool esp_ui_client::SendJsonDocToWebSocket(const JsonDocument &document) const
+bool WebsocketClient::SendJsonDocToWebSocket(const JsonDocument &document) const
 {
 	if (!CanSend())
 		return false;
@@ -356,7 +356,7 @@ bool esp_ui_client::SendJsonDocToWebSocket(const JsonDocument &document) const
 	return true;
 }
 
-void esp_ui_client::SetState(const ClientUpdateType_t value)
+void WebsocketClient::SetState(const ClientUpdateType_t value)
 {
 	// only a higher priority state request can replace the current state request
 	if (value > ClientUpdateType)

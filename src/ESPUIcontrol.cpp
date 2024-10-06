@@ -55,7 +55,7 @@ void Control::remove(const bool force_rebuild_ui) const
 	xSemaphoreGive(ui.ControlsSemaphore);
 
 	if (force_rebuild_ui)
-		ui.jsonReload();
+		ui.NotifyClients(ClientUpdateType_t::ReloadNeeded);
 	else
 		ui.NotifyClients(ClientUpdateType_t::RebuildNeeded);
 }
@@ -168,7 +168,7 @@ void Control::MarshalErrorMessage(const JsonObject &item) const
 	}
 }
 
-void Control::onWsEvent(const std::string &cmd, const std::string &data, const ESPUIClass &ui)
+void Control::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
 {
 	SetControlChangedId(ui.GetNextControlChangeId());
 

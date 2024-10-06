@@ -27,26 +27,22 @@ static std::string heapInfo(const __FlashStringHelper *mode)
 
 // Handle Websockets Communication
 void ESPUIClass::onWsEvent(AsyncWebSocketClient *client, const AwsEventType type, void *arg, const uint8_t *data,
-	const size_t len)
+                           const size_t len)
 {
-	if (WS_EVT_DISCONNECT == type)
-	{
-		if (MapOfClients.end() != MapOfClients.find(client->id()))
-		{
-			delete MapOfClients[client->id()];
-			MapOfClients.erase(client->id());
-		}
-	} else
+	//remove disconnected client
+	if (type == WS_EVT_DISCONNECT)
+		clients.erase(client->id());
+	//handle connect and data events
+	else
 	{
 		if (type == WS_EVT_CONNECT)
-		{
 			ws->cleanupClients();
-		}
 
-		if (MapOfClients.end() == MapOfClients.find(client->id()))
-			MapOfClients[client->id()] = new esp_ui_client(client, *this);
+		//Add new client
+		if (clients.end() == clients.find(client->id()))
+			clients.emplace(client->id(), WebsocketClient {client, *this});
 
-		if (MapOfClients[client->id()]->onWsEvent(type, arg, data, len))
+		if (clients.at(client->id()).onWsEvent(type, arg, data, len))
 			NotifyClients(ClientUpdateType_t::UpdateNeeded);
 	}
 }
@@ -83,7 +79,7 @@ void ESPUIClass::removeControl(const std::shared_ptr<Control> &control, const bo
 	xSemaphoreGive(ControlsSemaphore);
 
 	if (force_rebuild_ui)
-		jsonReload();
+		NotifyClients(ClientUpdateType_t::ReloadNeeded);
 	else
 		NotifyClients(ClientUpdateType_t::RebuildNeeded);
 }
@@ -109,124 +105,124 @@ std::shared_ptr<Control> ESPUIClass::getControlNoLock(const uint16_t id) const
 	return *it;
 }
 
-void ESPUIClass::updateControl(Control &control) const
+void ESPUIClass::updateControl(Control &control)
 {
 	// tell the control it has been updated
 	control.SetControlChangedId(GetNextControlChangeId());
 	NotifyClients(ClientUpdateType_t::UpdateNeeded);
 }
 
-uint32_t ESPUIClass::GetNextControlChangeId() const
+uint32_t ESPUIClass::GetNextControlChangeId()
 {
 	static uint32_t ControlChangeID = 0;
 
 	// force a reload which resets the counters
 	if (static_cast<uint32_t>(-1) == ControlChangeID)
-		jsonReload();
+		NotifyClients(ClientUpdateType_t::ReloadNeeded);
 
 	return ++ControlChangeID;
 }
 
-void ESPUIClass::setPanelStyle(Control &control, const std::string &style) const
+void ESPUIClass::setPanelStyle(Control &control, const std::string &style)
 {
 	control.panelStyle = style;
 	updateControl(control);
 }
 
-void ESPUIClass::setElementStyle(Control &control, const std::string &style) const
+void ESPUIClass::setElementStyle(Control &control, const std::string &style)
 {
 	control.elementStyle = style;
 	updateControl(control);
 }
 
-void ESPUIClass::setInputType(Control &control, const std::string &type) const
+void ESPUIClass::setInputType(Control &control, const std::string &type)
 {
 	control.inputType = type;
 	updateControl(control);
 }
 
-void ESPUIClass::setPanelWide(Control &control, const bool wide) const
+void ESPUIClass::setPanelWide(Control &control, const bool wide)
 {
 	control.wide = wide;
 	updateControl(control);
 }
 
-void ESPUIClass::setEnabled(Control &control, const bool enabled) const
+void ESPUIClass::setEnabled(Control &control, const bool enabled)
 {
 	control.enabled = enabled;
 	updateControl(control);
 }
 
-void ESPUIClass::setVertical(Control &control, const bool vert) const
+void ESPUIClass::setVertical(Control &control, const bool vert)
 {
 	control.vertical = vert;
 	updateControl(control);
 }
 
-void ESPUIClass::updateControlValue(Control &control, const std::string &value) const
+void ESPUIClass::updateControlValue(Control &control, const std::string &value)
 {
 	control.value = value;
 	updateControl(control);
 }
 
-void ESPUIClass::updateControlLabel(Control &control, const std::string &value) const
+void ESPUIClass::updateControlLabel(Control &control, const std::string &value)
 {
 	control.label = value;
 	updateControl(control);
 }
 
-void ESPUIClass::updateVisibility(Control &control, const bool visibility) const
+void ESPUIClass::updateVisibility(Control &control, const bool visibility)
 {
 	control.visible = visibility;
 	updateControl(control);
 }
 
-void ESPUIClass::print(Control &control, const std::string &value) const
+void ESPUIClass::print(Control &control, const std::string &value)
 {
 	updateControlValue(control, value);
 }
 
-void ESPUIClass::updateLabel(Control &control, const std::string &value) const
+void ESPUIClass::updateLabel(Control &control, const std::string &value)
 {
 	updateControlValue(control, value);
 }
 
-void ESPUIClass::updateButton(Control &control, const std::string &value) const
+void ESPUIClass::updateButton(Control &control, const std::string &value)
 {
 	updateControlValue(control, value);
 }
 
-void ESPUIClass::updateSlider(Control &control, const int nValue) const
+void ESPUIClass::updateSlider(Control &control, const int nValue)
 {
 	updateControlValue(control, std::to_string(nValue));
 }
 
-void ESPUIClass::updateSwitcher(Control &control, const bool nValue) const
+void ESPUIClass::updateSwitcher(Control &control, const bool nValue)
 {
 	updateControlValue(control, std::string(nValue ? "1" : "0"));
 }
 
-void ESPUIClass::updateNumber(Control &control, const int number) const
+void ESPUIClass::updateNumber(Control &control, const int number)
 {
 	updateControlValue(control, std::to_string(number));
 }
 
-void ESPUIClass::updateText(Control &control, const std::string &nValue) const
+void ESPUIClass::updateText(Control &control, const std::string &nValue)
 {
 	updateControlValue(control, nValue);
 }
 
-void ESPUIClass::updateSelect(Control &control, const std::string &nValue) const
+void ESPUIClass::updateSelect(Control &control, const std::string &nValue)
 {
 	updateControlValue(control, nValue);
 }
 
-void ESPUIClass::updateGauge(Control &control, const int number) const
+void ESPUIClass::updateGauge(Control &control, const int number)
 {
 	updateControlValue(control, std::to_string(number));
 }
 
-void ESPUIClass::updateTime(Control &control) const
+void ESPUIClass::updateTime(Control &control)
 {
 	updateControl(control);
 }
@@ -257,26 +253,20 @@ void ESPUIClass::addGraphPoint(const Control &control, const int nValue) const
 
 void ESPUIClass::SendJsonDocToWebSocket(const JsonDocument &document) const
 {
-	for (const auto CurrentClient: MapOfClients)
-		(void) CurrentClient.second->SendJsonDocToWebSocket(document);
+	for (const auto &[id, client]: clients)
+		(void) client.SendJsonDocToWebSocket(document);
 }
 
 // Tell all the clients that they need to ask for an upload of the control data.
-void ESPUIClass::NotifyClients(const ClientUpdateType_t newState) const
+void ESPUIClass::NotifyClients(const ClientUpdateType_t newState)
 {
-	for (const auto &CurrentClient: MapOfClients)
-		CurrentClient.second->NotifyClient(newState);
-}
-
-void ESPUIClass::jsonReload() const
-{
-	for (const auto &CurrentClient: MapOfClients)
-		CurrentClient.second->NotifyClient(ClientUpdateType_t::ReloadNeeded);
+	for (auto &[id, client]: clients)
+		client.NotifyClient(newState);
 }
 
 void ESPUIClass::begin(const char *_title, const uint16_t port)
 {
-	ui_title = _title;
+	uiTitle = _title;
 
 	server = new AsyncWebServer(port);
 	ws = new AsyncWebSocket("/ws");

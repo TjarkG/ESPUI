@@ -36,22 +36,22 @@ enum class UpdateType : uint8_t
 class ESPUIClass
 {
 protected:
-	friend class esp_ui_client;
+	friend class WebsocketClient;
 	friend class Control;
 
 	SemaphoreHandle_t ControlsSemaphore;
 
 	// Store UI Title
-	const char *ui_title = "ESPUI";
+	const char *uiTitle = "ESPUI";
 
 	AsyncWebServer *server {};
 	AsyncWebSocket *ws {};
 
-	std::map<uint32_t, esp_ui_client *> MapOfClients;
+	std::map<uint32_t, WebsocketClient> clients;
 
 	std::list<std::shared_ptr<Control> > controls;
 
-	void NotifyClients(ClientUpdateType_t newState) const;
+	void NotifyClients(ClientUpdateType_t newState);
 
 	void NotifyClient(uint32_t WsClientId, ClientUpdateType_t newState);
 
@@ -61,13 +61,11 @@ protected:
 	               const uint8_t *data,
 	               size_t len);
 
-	std::shared_ptr<Control> getControl(uint16_t id) const;
+	[[nodiscard]] std::shared_ptr<Control> getControl(uint16_t id) const;
 
-	std::shared_ptr<Control> getControlNoLock(uint16_t id) const;
+	[[nodiscard]] std::shared_ptr<Control> getControlNoLock(uint16_t id) const;
 
-	void jsonReload() const;
-
-	uint32_t GetNextControlChangeId() const;
+	[[nodiscard]] uint32_t GetNextControlChangeId();
 
 public:
 	ESPUIClass()
@@ -87,47 +85,47 @@ public:
 	void removeControl(const std::shared_ptr<Control> &control, bool force_rebuild_ui = false);
 
 	// Update Elements
-	void updateControlValue(Control &control, const std::string &value) const;
+	void updateControlValue(Control &control, const std::string &value);
 
-	void updateControlLabel(Control &control, const std::string &value) const;
+	void updateControlLabel(Control &control, const std::string &value);
 
-	void updateControl(Control &control) const;
+	void updateControl(Control &control);
 
-	void print(Control &control, const std::string &value) const;
+	void print(Control &control, const std::string &value);
 
-	void updateLabel(Control &control, const std::string &value) const;
+	void updateLabel(Control &control, const std::string &value);
 
-	void updateButton(Control &control, const std::string &value) const;
+	void updateButton(Control &control, const std::string &value);
 
-	void updateSwitcher(Control &control, bool nValue) const;
+	void updateSwitcher(Control &control, bool nValue);
 
-	void updateSlider(Control &control, int nValue) const;
+	void updateSlider(Control &control, int nValue);
 
-	void updateNumber(Control &control, int number) const;
+	void updateNumber(Control &control, int number);
 
-	void updateText(Control &control, const std::string &nValue) const;
+	void updateText(Control &control, const std::string &nValue);
 
-	void updateSelect(Control &control, const std::string &nValue) const;
+	void updateSelect(Control &control, const std::string &nValue);
 
-	void updateGauge(Control &control, int number) const;
+	void updateGauge(Control &control, int number);
 
-	void updateTime(Control &control) const;
+	void updateTime(Control &control);
 
 	void clearGraph(const Control &control) const;
 
 	void addGraphPoint(const Control &control, int nValue) const;
 
-	void setPanelStyle(Control &control, const std::string &style) const;
+	void setPanelStyle(Control &control, const std::string &style);
 
-	void setElementStyle(Control &control, const std::string &style) const;
+	void setElementStyle(Control &control, const std::string &style);
 
-	void setInputType(Control &control, const std::string &type) const;
+	void setInputType(Control &control, const std::string &type);
 
-	void setPanelWide(Control &control, bool wide) const;
+	void setPanelWide(Control &control, bool wide);
 
-	void setVertical(Control &control, bool vert = true) const;
+	void setVertical(Control &control, bool vert = true);
 
-	void setEnabled(Control &control, bool enabled = true) const;
+	void setEnabled(Control &control, bool enabled = true);
 
-	void updateVisibility(Control &control, bool visibility) const;
+	void updateVisibility(Control &control, bool visibility);
 };

@@ -35,7 +35,7 @@ enum class ClientState_t
 	Reloading = 3,
 };
 
-class esp_ui_client final
+class WebsocketClient final
 {
 	uint32_t CurrentSyncID = 0;
 	uint32_t NextSyncID = 0;
@@ -57,7 +57,7 @@ class esp_ui_client final
 
 	time_t EspuiClientEndTime = 0;
 
-	bool CanSend() const;
+	[[nodiscard]] bool CanSend() const;
 
 	void FillInHeader(JsonDocument &document) const;
 
@@ -68,21 +68,21 @@ class esp_ui_client final
 	bool SendClientNotification(ClientUpdateType_t value) const;
 
 public:
-	esp_ui_client(AsyncWebSocketClient *client, ESPUIClass &ui):
+	WebsocketClient(AsyncWebSocketClient *client, ESPUIClass &ui):
 		ui(ui), client(client) {}
 
-	esp_ui_client(const esp_ui_client &source):
+	WebsocketClient(const WebsocketClient &source):
 		ui(source.ui), client(source.client) {}
 
-	~esp_ui_client() = default;
+	~WebsocketClient() = default;
 
 	void NotifyClient(ClientUpdateType_t value);
 
 	bool onWsEvent(AwsEventType type, void *arg, const uint8_t *data, size_t len);
 
-	bool IsSynchronized() const;
+	[[nodiscard]] bool IsSynchronized() const;
 
-	uint32_t id() const { return client->id(); }
+	[[nodiscard]] uint32_t id() const { return client->id(); }
 
 	void SetState(ClientUpdateType_t value);
 
