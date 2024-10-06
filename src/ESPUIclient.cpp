@@ -1,6 +1,6 @@
 #include "ESPUIclient.hpp"
 #include "ESPUI.hpp"
-#include "ESPUIcontrol.hpp"
+#include "Widgets/ESPUIcontrol.hpp"
 
 bool WebsocketClient::NotifyClient()
 {

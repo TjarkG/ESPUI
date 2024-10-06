@@ -6,7 +6,7 @@
 #include <map>
 
 #include "ESPUIclient.hpp"
-#include "ESPUIcontrol.hpp"
+#include "Widgets/ESPUIcontrol.hpp"
 
 // Values
 enum class UpdateType : uint8_t
@@ -36,7 +36,7 @@ class ESPUIClass
 {
 protected:
 	friend class WebsocketClient;
-	friend class Control;
+	friend class RootWidget;
 
 	SemaphoreHandle_t ControlsSemaphore;
 
@@ -49,7 +49,7 @@ protected:
 	std::map<uint32_t, WebsocketClient> clients;
 
 public:
-	std::shared_ptr<Control> root {};
+	std::shared_ptr<RootWidget> root {};
 
 protected:
 	void NotifyClients(ClientUpdateType_t newState);
@@ -62,62 +62,60 @@ protected:
 	               const uint8_t *data,
 	               size_t len);
 
-	[[nodiscard]] std::shared_ptr<Control> getControl(uint16_t id) const;
-
-	[[nodiscard]] uint32_t GetNextControlChangeId();
+	[[nodiscard]] std::shared_ptr<Widget> getControl(uint16_t id) const;
 
 public:
 	ESPUIClass()
 	{
-		root = std::make_shared<Control>(this);
+		root = std::make_shared<RootWidget>(*this);
 		ControlsSemaphore = xSemaphoreCreateMutex();
 		xSemaphoreGive(ControlsSemaphore);
 	}
 
 	void begin(const char *_title, uint16_t port = 80); // Setup server and page in Memory mode
 
+	[[nodiscard]] uint32_t GetNextControlChangeId();
+
 	// Update Elements
-	void updateControlValue(Control &control, const std::string &value);
+	void updateControlValue(Widget &control, const std::string &value);
 
-	void updateControlLabel(Control &control, const std::string &value);
+	void updateControlLabel(Widget &control, const std::string &value);
 
-	void updateControl(Control &control);
+	void updateControl(Widget &control);
 
-	void print(Control &control, const std::string &value);
+	void print(Widget &control, const std::string &value);
 
-	void updateLabel(Control &control, const std::string &value);
+	void updateLabel(Widget &control, const std::string &value);
 
-	void updateButton(Control &control, const std::string &value);
+	void updateButton(Widget &control, const std::string &value);
 
-	void updateSwitcher(Control &control, bool nValue);
+	void updateSwitcher(Widget &control, bool nValue);
 
-	void updateSlider(Control &control, int nValue);
+	void updateSlider(Widget &control, int nValue);
 
-	void updateNumber(Control &control, int number);
+	void updateNumber(Widget &control, int number);
 
-	void updateText(Control &control, const std::string &nValue);
+	void updateText(Widget &control, const std::string &nValue);
 
-	void updateSelect(Control &control, const std::string &nValue);
+	void updateSelect(Widget &control, const std::string &nValue);
 
-	void updateGauge(Control &control, int number);
+	void updateGauge(Widget &control, int number);
 
-	void updateTime(Control &control);
+	void updateTime(Widget &control);
 
-	void clearGraph(const Control &control) const;
+	void clearGraph(const Widget &control) const;
 
-	void addGraphPoint(const Control &control, int nValue) const;
+	void addGraphPoint(const Widget &control, int nValue) const;
 
-	void setPanelStyle(Control &control, const std::string &style);
+	void setPanelStyle(Widget &control, const std::string &style);
 
-	void setElementStyle(Control &control, const std::string &style);
+	void setElementStyle(Widget &control, const std::string &style);
 
-	void setInputType(Control &control, const std::string &type);
+	void setInputType(Widget &control, const std::string &type);
 
-	void setPanelWide(Control &control, bool wide);
+	void setPanelWide(Widget &control, bool wide);
 
-	void setVertical(Control &control, bool vert = true);
+	void setVertical(Widget &control, bool vert = true);
 
-	void setEnabled(Control &control, bool enabled = true);
-
-	void updateVisibility(Control &control, bool visibility);
+	void setEnabled(Widget &control, bool enabled = true);
 };
