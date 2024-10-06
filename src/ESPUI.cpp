@@ -47,62 +47,12 @@ void ESPUIClass::onWsEvent(AsyncWebSocketClient *client, const AwsEventType type
 	}
 }
 
-std::shared_ptr<Control> ESPUIClass::addControl(const Control &control)
-{
-	xSemaphoreTake(ControlsSemaphore, portMAX_DELAY);
-
-	controls.push_back(std::make_shared<Control>(control));
-
-	xSemaphoreGive(ControlsSemaphore);
-
-	NotifyClients(ClientUpdateType_t::RebuildNeeded);
-
-	return controls.back();
-}
-
-std::shared_ptr<Control> ESPUIClass::add(const ControlType type,
-                                         const std::string &label,
-                                         const std::string &value,
-                                         const ControlColor color,
-                                         const std::function<void(Control *, UpdateType)> &callback)
-{
-	const Control control = {type, label, callback, value, color, true, nullptr, *this};
-
-	return addControl(control);
-}
-
-void ESPUIClass::removeControl(const std::shared_ptr<Control> &control, const bool force_rebuild_ui)
-{
-	xSemaphoreTake(ControlsSemaphore, portMAX_DELAY);
-	const auto it = std::find(controls.begin(), controls.end(), control);
-	controls.erase(it);
-	xSemaphoreGive(ControlsSemaphore);
-
-	if (force_rebuild_ui)
-		NotifyClients(ClientUpdateType_t::ReloadNeeded);
-	else
-		NotifyClients(ClientUpdateType_t::RebuildNeeded);
-}
-
 std::shared_ptr<Control> ESPUIClass::getControl(const uint16_t id) const
 {
 	xSemaphoreTake(ControlsSemaphore, portMAX_DELAY);
-	auto Response = getControlNoLock(id);
+	auto Response = root->find(id);
 	xSemaphoreGive(ControlsSemaphore);
 	return Response;
-}
-
-// WARNING: Anytime you walk the chain of controllers, the protection semaphore
-//          MUST be locked. This function assumes that the semaphore is locked
-//          at the time it is called. Make sure YOU locked it :)
-std::shared_ptr<Control> ESPUIClass::getControlNoLock(const uint16_t id) const
-{
-	const auto it = std::find_if(controls.begin(), controls.end(),
-	                             [id](const std::shared_ptr<Control> &i) { return i->id == id; });
-	if (it == controls.end())
-		return nullptr;
-
-	return *it;
 }
 
 void ESPUIClass::updateControl(Control &control)

@@ -87,7 +87,7 @@ void WebsocketClient::FillInHeader(JsonDocument &document) const
 	document[F("type")] = ExtendGUI;
 	document[F("sliderContinuous")] = sliderContinuous;
 	document[F("startindex")] = 0;
-	document[F("totalcontrols")] = ui.controls.size();
+	document[F("totalcontrols")] = ui.root->getChildCount();
 	const JsonArray items = document[F("controls")].to<JsonArray>();
 	const JsonObject titleItem = items.add<JsonObject>();
 	titleItem[F("type")] = static_cast<int>(ControlType::Title);
@@ -190,7 +190,8 @@ Prepare a chunk of elements as a single JSON string. If the allowed number of el
 number this will represent the entire UI. More likely, it will represent a small section of the UI to be sent. The
 client will acknowledge receipt by requesting the next chunk.
  */
-uint32_t WebsocketClient::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpdateMode, const std::string &value) const
+uint32_t WebsocketClient::prepareJSONChunk(JsonDocument &rootDoc, const bool InUpdateMode,
+                                           const std::string &value) const
 {
 	xSemaphoreTake(ui.ControlsSemaphore, portMAX_DELAY);
 
@@ -231,7 +232,7 @@ uint32_t WebsocketClient::prepareJSONChunk(JsonDocument &rootDoc, const bool InU
 			return 0;
 		}
 		const auto DataOffset = FragmentRequest[F("offset")].as<uint32_t>();
-		const auto control = ui.getControlNoLock(ControlId);
+		const auto control = ui.root->find(ControlId);
 		if (nullptr == control)
 		{
 			Serial.println((
@@ -258,7 +259,7 @@ uint32_t WebsocketClient::prepareJSONChunk(JsonDocument &rootDoc, const bool InU
 	// message. Overflow is detected and handled later in this loop
 	// and needs an index to the last item added.
 	int elementCount = 0;
-	for (const auto &control: ui.controls)
+	for (const auto &control: ui.root->getChildren())
 	{
 		// control has not been updated. Skip it
 		if (InUpdateMode && !control->NeedsSync(CurrentSyncID))
@@ -318,11 +319,11 @@ etc.
     Returns true if all controls have been sent (aka: Done)
 */
 bool WebsocketClient::SendControlsToClient(const uint16_t start_idx, const ClientUpdateType_t TransferMode,
-                                         const std::string &FragmentRequest)
+                                           const std::string &FragmentRequest)
 {
 	if (!CanSend())
 		return false;
-	if (start_idx >= ui.controls.size() && FragmentRequest.empty())
+	if (start_idx >= ui.root->getChildCount() && FragmentRequest.empty())
 		return true;
 
 	JsonDocument document;

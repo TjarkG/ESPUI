@@ -3,7 +3,6 @@
 #include <ArduinoJson.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <list>
 #include <map>
 
 #include "ESPUIclient.hpp"
@@ -49,8 +48,10 @@ protected:
 
 	std::map<uint32_t, WebsocketClient> clients;
 
-	std::list<std::shared_ptr<Control> > controls;
+public:
+	std::shared_ptr<Control> root {};
 
+protected:
 	void NotifyClients(ClientUpdateType_t newState);
 
 	void NotifyClient(uint32_t WsClientId, ClientUpdateType_t newState);
@@ -63,26 +64,17 @@ protected:
 
 	[[nodiscard]] std::shared_ptr<Control> getControl(uint16_t id) const;
 
-	[[nodiscard]] std::shared_ptr<Control> getControlNoLock(uint16_t id) const;
-
 	[[nodiscard]] uint32_t GetNextControlChangeId();
 
 public:
 	ESPUIClass()
 	{
+		root = std::make_shared<Control>(this);
 		ControlsSemaphore = xSemaphoreCreateMutex();
 		xSemaphoreGive(ControlsSemaphore);
 	}
 
 	void begin(const char *_title, uint16_t port = 80); // Setup server and page in Memory mode
-
-	std::shared_ptr<Control> addControl(const Control &control);
-
-	std::shared_ptr<Control> add(ControlType type, const std::string &label = "", const std::string &value = "",
-	                             ControlColor color = ControlColor::None,
-	                             const std::function<void(Control *, UpdateType)> &callback = nullptr);
-
-	void removeControl(const std::shared_ptr<Control> &control, bool force_rebuild_ui = false);
 
 	// Update Elements
 	void updateControlValue(Control &control, const std::string &value);

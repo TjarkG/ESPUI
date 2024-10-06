@@ -56,17 +56,19 @@ enum class ControlColor : uint8_t
 
 class Control : public std::enable_shared_from_this<Control>
 {
-	ESPUIClass &ui;
+protected:
+	ESPUIClass *ui {};
 	std::shared_ptr<Control> parentControl;
+	std::vector<std::shared_ptr<Control> > children;
 
 public:
-	ControlType type;
-	uint16_t id;
+	ControlType type = ControlType::Title;
+	uint16_t id = 0;
 	std::string label;
 	std::function<void(Control *, UpdateType)> callback;
 	std::string value;
-	ControlColor color;
-	bool visible;
+	ControlColor color = ControlColor::None;
+	bool visible {true};
 	bool wide {false};
 	bool vertical {false};
 	bool enabled {true};
@@ -76,8 +78,10 @@ public:
 
 	static constexpr uint16_t noParent = 0xffff;
 
+	explicit Control(ESPUIClass *ui): ui(ui) {}
+
 	Control(ControlType type, std::string label, std::function<void(Control *, UpdateType)> callback, std::string value,
-	        ControlColor color, bool visible, const std::shared_ptr<Control> &parentControl, ESPUIClass &ui);
+	        ControlColor color, bool visible, const std::shared_ptr<Control> &parentControl, ESPUIClass *ui);
 
 	Control(const Control &Control);
 
@@ -112,6 +116,15 @@ public:
 
 	//Remove this Control
 	void remove(bool force_rebuild_ui = false) const;
+
+	//find control with id, return pointer to it or nullptr
+	std::shared_ptr<Control> find(uint16_t id_in);
+
+	// get number of children and grandchildren, excluding this node
+	size_t getChildCount() const;
+
+	//get a vector of shared pointers to all children and grandchildren
+	std::vector<std::shared_ptr<Control> > getChildren() const;
 
 private:
 	uint32_t ControlChangeID = 0;

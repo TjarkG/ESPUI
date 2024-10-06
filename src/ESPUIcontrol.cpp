@@ -6,7 +6,7 @@ static const std::string ControlError = "*** ESPUI ERROR: Could not transfer con
 
 Control::Control(const ControlType type, std::string label, std::function<void(Control *, UpdateType)> callback,
                  std::string value, const ControlColor color, const bool visible,
-                 const std::shared_ptr<Control> &parentControl, ESPUIClass &ui):
+                 const std::shared_ptr<Control> &parentControl, ESPUIClass *ui):
 	ui(ui),
 	parentControl(parentControl),
 	type(type),
@@ -38,26 +38,71 @@ std::shared_ptr<Control> Control::add(const ControlType type, const std::string 
                                       const std::function<void(Control *, UpdateType)> &callback,
                                       const bool visible)
 {
-	const Control control = {type, label, callback, value, color, visible, shared_from_this(), ui};
+	auto control = std::make_shared<Control>(type, label, callback, value, color, visible, shared_from_this(), ui);
 
-	return ui.addControl(control);
+	children.push_back(control);
+	if (ui)
+	{
+		xSemaphoreTake(ui->ControlsSemaphore, portMAX_DELAY);
+		ui->NotifyClients(ClientUpdateType_t::RebuildNeeded);
+		xSemaphoreGive(ui->ControlsSemaphore);
+	}
+	return control;
 }
 
 void Control::remove(const bool force_rebuild_ui) const
 {
-	xSemaphoreTake(ui.ControlsSemaphore, portMAX_DELAY);
-	const auto it = std::find_if(ui.controls.begin(), ui.controls.end(), [this](const std::shared_ptr<Control> &i)
+	if (ui)
+		xSemaphoreTake(ui->ControlsSemaphore, portMAX_DELAY);
+	const auto it = std::find_if(parentControl->children.begin(), parentControl->children.end(),
+	                             [this](const std::shared_ptr<Control> &i)
+	                             {
+		                             return i.get() == this;
+	                             });
+
+	parentControl->children.erase(it);
+
+	if (ui)
 	{
-		return i.get() == this;
-	});
+		xSemaphoreGive(ui->ControlsSemaphore);
+		if (force_rebuild_ui)
+			ui->NotifyClients(ClientUpdateType_t::ReloadNeeded);
+		else
+			ui->NotifyClients(ClientUpdateType_t::RebuildNeeded);
+	}
+}
 
-	ui.controls.erase(it);
-	xSemaphoreGive(ui.ControlsSemaphore);
+std::shared_ptr<Control> Control::find(const uint16_t id_in)
+{
+	if (id_in == id)
+		return shared_from_this();
 
-	if (force_rebuild_ui)
-		ui.NotifyClients(ClientUpdateType_t::ReloadNeeded);
-	else
-		ui.NotifyClients(ClientUpdateType_t::RebuildNeeded);
+	for (const auto &child: children)
+		if (auto tmp = child->find(id_in); tmp != nullptr)
+			return tmp;
+
+	return nullptr;
+}
+
+size_t Control::getChildCount() const
+{
+	size_t i = children.size();
+	for (const auto &child: children)
+		i += child->getChildCount();
+
+	return i;
+}
+
+std::vector<std::shared_ptr<Control> > Control::getChildren() const
+{
+	auto v = children;
+	for (const auto &child: children)
+	{
+		auto cv = child->getChildren();
+		v.insert(v.end(), cv.begin(), cv.end());
+	}
+
+	return v;
 }
 
 bool Control::MarshalControl(const JsonObject &item, const bool refresh, const uint32_t DataOffset,
