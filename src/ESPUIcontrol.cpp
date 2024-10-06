@@ -21,6 +21,7 @@ Control::Control(const ControlType type, std::string label, std::function<void(C
 	ControlChangeID = 1;
 }
 
+//Copy Constructor. No need to call Constructor of shared_from_this since it is empty
 Control::Control(const Control &Control) : // NOLINT(*-copy-constructor-init)
 	ui(Control.ui),
 	parentControl(Control.parentControl),
@@ -170,53 +171,53 @@ void Control::onWsEvent(const std::string &cmd, const std::string &data, ESPUICl
 {
 	SetControlChangedId(ui.GetNextControlChangeId());
 
-	if (cmd == "bdown")
+	if (cmd == "buttonDown")
 		SendCallback(B_DOWN);
-	else if (cmd == "bup")
+	else if (cmd == "buttonUP")
 		SendCallback(B_UP);
-	else if (cmd == "pfdown")
+	else if (cmd == "padForwardDown")
 		SendCallback(P_FOR_DOWN);
-	else if (cmd == "pfup")
+	else if (cmd == "padForwardUp")
 		SendCallback(P_FOR_UP);
-	else if (cmd == "pldown")
+	else if (cmd == "padLeftDown")
 		SendCallback(P_LEFT_DOWN);
-	else if (cmd == "plup")
+	else if (cmd == "padLeftUp")
 		SendCallback(P_LEFT_UP);
-	else if (cmd == "prdown")
+	else if (cmd == "padRightDown")
 		SendCallback(P_RIGHT_DOWN);
-	else if (cmd == "prup")
+	else if (cmd == "padRightUp")
 		SendCallback(P_RIGHT_UP);
-	else if (cmd == "pbdown")
+	else if (cmd == "padBackDown")
 		SendCallback(P_BACK_DOWN);
-	else if (cmd == "pbup")
+	else if (cmd == "padBackUp")
 		SendCallback(P_BACK_UP);
-	else if (cmd == "pcdown")
+	else if (cmd == "padCenterDown")
 		SendCallback(P_CENTER_DOWN);
-	else if (cmd == "pcup")
+	else if (cmd == "padCenterUp")
 		SendCallback(P_CENTER_UP);
-	else if (cmd == "sactive")
+	else if (cmd == "switchActive")
 	{
 		value = "1";
 		SendCallback(S_ACTIVE);
-	} else if (cmd == "sinactive")
+	} else if (cmd == "switchInactive")
 	{
 		value = "0";
 		SendCallback(S_INACTIVE);
-	} else if (cmd == "slvalue")
+	} else if (cmd == "sliderValue")
 	{
 		value = data;
 		SendCallback(SL_VALUE);
-	} else if (cmd == "nvalue")
+	} else if (cmd == "numberValue")
 	{
 		value = data;
 		SendCallback(N_VALUE);
-	} else if (cmd == "tvalue")
+	} else if (cmd == "textValue")
 	{
 		value = data;
 		SendCallback(T_VALUE);
-	} else if (cmd == "tabvalue")
+	} else if (cmd == "tabValue")
 		SendCallback(0);
-	else if (cmd == "svalue")
+	else if (cmd == "selectValue")
 	{
 		value = data;
 		SendCallback(S_VALUE);

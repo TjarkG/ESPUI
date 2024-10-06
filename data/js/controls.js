@@ -847,7 +847,7 @@ function StopFragmentAssemblyTimer(Id) {
 
 function sliderchange(number) {
     const val = $("#sl" + number).val();
-    websock.send("slvalue:" + val + ":" + number);
+    websock.send("sliderValue:" + val + ":" + number);
 
     $(".range-slider__range").each(function () {
         $(this).attr("value", $(this)[0].value);
@@ -856,27 +856,27 @@ function sliderchange(number) {
 
 function numberchange(number) {
     const val = $("#num" + number).val();
-    websock.send("nvalue:" + val + ":" + number);
+    websock.send("numberValue:" + val + ":" + number);
 }
 
 function textchange(number) {
     const val = $("#text" + number).val();
-    websock.send("tvalue:" + val + ":" + number);
+    websock.send("textValue:" + val + ":" + number);
 }
 
 function tabclick(number) {
     const val = $("#tab" + number).val();
-    websock.send("tabvalue:" + val + ":" + number);
+    websock.send("tabValue:" + val + ":" + number);
 }
 
 function selectchange(number) {
     const val = $("#select" + number).val();
-    websock.send("svalue:" + val + ":" + number);
+    websock.send("selectValue:" + val + ":" + number);
 }
 
 function buttonclick(number, isdown) {
-    if (isdown) websock.send("bdown:" + number);
-    else websock.send("bup:" + number);
+    if (isdown) websock.send("buttonDown:" + number);
+    else websock.send("buttonUP:" + number);
 }
 
 function padclick(type, number, isdown) {
@@ -885,24 +885,24 @@ function padclick(type, number, isdown) {
     }
     switch (type) {
         case CENTER:
-            if (isdown) websock.send("pcdown:" + number);
-            else websock.send("pcup:" + number);
+            if (isdown) websock.send("padCenterDown:" + number);
+            else websock.send("padCenterUp:" + number);
             break;
         case UP:
-            if (isdown) websock.send("pfdown:" + number);
-            else websock.send("pfup:" + number);
+            if (isdown) websock.send("padForwardDown:" + number);
+            else websock.send("padForwardUp:" + number);
             break;
         case DOWN:
-            if (isdown) websock.send("pbdown:" + number);
-            else websock.send("pbup:" + number);
+            if (isdown) websock.send("padBackDown:" + number);
+            else websock.send("padBackUp:" + number);
             break;
         case LEFT:
-            if (isdown) websock.send("pldown:" + number);
-            else websock.send("plup:" + number);
+            if (isdown) websock.send("padLeftDown:" + number);
+            else websock.send("padLeftUp:" + number);
             break;
         case RIGHT:
-            if (isdown) websock.send("prdown:" + number);
-            else websock.send("prup:" + number);
+            if (isdown) websock.send("padRightDown:" + number);
+            else websock.send("padRightUp:" + number);
             break;
     }
 }
@@ -910,10 +910,10 @@ function padclick(type, number, isdown) {
 function switcher(number, state) {
     if (state == null) {
         if (!$("#sl" + number).hasClass("checked")) {
-            websock.send("sactive:" + number);
+            websock.send("switchActive:" + number);
             $("#sl" + number).addClass("checked");
         } else {
-            websock.send("sinactive:" + number);
+            websock.send("switchInactive:" + number);
             $("#sl" + number).removeClass("checked");
         }
     } else if (state === 1) {
