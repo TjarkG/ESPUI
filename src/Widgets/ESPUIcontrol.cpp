@@ -3,9 +3,10 @@
 #include "ESPUI.hpp"
 
 static const std::string ControlError = "*** ESPUI ERROR: Could not transfer control ***";
+uint16_t idCounter = 0;
 
-Widget::Widget(const ControlType type, std::string label, std::function<void(Widget *, UpdateType)> callback,
-                 std::string value, const ControlColor color, const std::shared_ptr<Widget> &parentControl):
+Widget::Widget(const ControlType type, std::string label, std::string value, const ControlColor color,
+               std::function<void(Widget *, UpdateType)> callback, const std::shared_ptr<Widget> &parentControl):
 	parentControl(parentControl),
 	type(type),
 	label(std::move(label)),
@@ -13,16 +14,14 @@ Widget::Widget(const ControlType type, std::string label, std::function<void(Wid
 	value(std::move(value)),
 	color(color)
 {
-	static uint16_t idCounter = 0;
 	id = ++idCounter;
-	ControlChangeID = 1;
 }
 
 std::shared_ptr<Widget> Widget::add(const ControlType type, const std::string &label, const std::string &value,
-                                      const ControlColor color,
-                                      const std::function<void(Widget *, UpdateType)> &callback)
+                                    const ControlColor color,
+                                    const std::function<void(Widget *, UpdateType)> &callback)
 {
-	auto control = std::make_shared<Widget>(type, label, callback, value, color, shared_from_this());
+	auto control = std::make_shared<Widget>(type, label, value, color, callback, shared_from_this());
 
 	children.push_back(control);
 	notifyParent();
@@ -89,7 +88,7 @@ void RootWidget::notifyParent() const
 }
 
 bool Widget::MarshalControl(const JsonObject &item, const bool refresh, const uint32_t DataOffset,
-                             const uint32_t MaxLength, uint32_t &EstimatedUsedSpace) const
+                            const uint32_t MaxLength, uint32_t &EstimatedUsedSpace) const
 {
 	// this code assumes MaxMarshaledLength > JsonMarshalingRatio
 	if (refresh && type == ControlType::Tab)
@@ -256,4 +255,92 @@ void Widget::onWsEvent(const std::string &cmd, const std::string &data, ESPUICla
 		value = data;
 		SendCallback(UpdateType::Time);
 	}
+}
+
+
+Button::Button(std::string heading, std::string buttonLable, const ControlColor color_in,
+               std::function<void(Button &)> callback):
+	b_heading(std::move(heading)), b_label(std::move(buttonLable)), callback(std::move(callback))
+{
+	color = color_in;
+	id = ++idCounter;
+}
+
+bool Button::MarshalControl(const JsonObject &item, const bool refresh, const uint32_t DataOffset, const uint32_t MaxLength,
+	uint32_t &EstimatedUsedSpace) const
+{
+	// how much space do we expect to use?
+	const uint32_t LabelMarshaledLength = b_heading.length() * JsonMarshalingRatio;
+	const uint32_t MinimumMarshaledLength = LabelMarshaledLength + JsonMarshaledOverhead;
+	const uint32_t SpaceForMarshaledValue = MaxLength - MinimumMarshaledLength;
+
+	// will the item fit in the remaining space? Fragment if not
+	if (MaxLength < MinimumMarshaledLength)
+	{
+		EstimatedUsedSpace = 0;
+		return false;
+	}
+
+	const uint32_t MaxValueLength = SpaceForMarshaledValue / JsonMarshalingRatio;
+
+	const uint32_t ValueLenToSend = min(b_label.length() - DataOffset, MaxValueLength);
+
+	const uint32_t AdjustedMarshaledLength = ValueLenToSend * JsonMarshalingRatio + MinimumMarshaledLength;
+
+	const bool NeedToFragment = ValueLenToSend < b_label.length();
+
+	if (AdjustedMarshaledLength > MaxLength && 0 != ValueLenToSend)
+	{
+		EstimatedUsedSpace = 0;
+		return false;
+	}
+
+	EstimatedUsedSpace = AdjustedMarshaledLength;
+
+	// are we fragmenting?
+	if (NeedToFragment || DataOffset)
+	{
+		// fill in the fragment header
+		item[F("type")] = static_cast<uint32_t>(ControlType::Fragment);
+		item[F("id")] = id;
+
+		item[F("offset")] = DataOffset;
+		item[F("length")] = ValueLenToSend;
+		item[F("total")] = b_label.length();
+		item[F("control")] = item;
+	}
+
+	item[F("id")] = id;
+	if (refresh)
+		item[F("type")] = static_cast<uint32_t>(ControlType::Button) + static_cast<uint32_t>(ControlType::UpdateOffset);
+	else
+		item[F("type")] = static_cast<uint32_t>(ControlType::Button);
+
+	item[F("label")] = b_heading;
+	item[F("value")] = b_label.substr(DataOffset, ValueLenToSend);
+	item[F("visible")] = true;
+	item[F("color")] = static_cast<int>(color);
+	item[F("enabled")] = enabled;
+
+	if (!panelStyle.empty()) { item[F("panelStyle")] = panelStyle; }
+	if (!elementStyle.empty()) { item[F("elementStyle")] = elementStyle; }
+	if (wide == true) { item[F("wide")] = true; }
+	if (const std::shared_ptr<Widget> parent = parentControl.lock())
+		item[F("parentControl")] = std::to_string(parent->id);
+
+	// indicate that no additional controls should be sent if fragmenting is on
+	return NeedToFragment || DataOffset;
+}
+
+void Button::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
+{
+	SetControlChangedId(ui.GetNextControlChangeId());
+
+	if (cmd == "buttonDown")
+		state = true;
+	else if (cmd == "buttonUP")
+		state = false;
+
+	if(callback)
+		callback(*this);
 }

@@ -79,40 +79,53 @@ public:
 
 	static constexpr uint16_t noParent = 0xffff;
 
-	Widget(ControlType type, std::string label, std::function<void(Widget *, UpdateType)> callback, std::string value,
-	        ControlColor color, const std::shared_ptr<Widget> &parentControl);
+	Widget(ControlType type, std::string label, std::string value = "",
+	       ControlColor color = ControlColor::None,
+	       std::function<void(Widget *, UpdateType)> callback = nullptr,
+	       const std::shared_ptr<Widget> &parentControl = nullptr);
 
 	Widget(const Widget &Control) = default;
 
 	virtual ~Widget() = default;
 
-	void SendCallback(const UpdateType type)
+	void SendCallback(const UpdateType CallbackType)
 	{
 		if (callback)
-			callback(this, type);
+			callback(this, CallbackType);
 	}
 
-	bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
-	                    uint32_t &EstimatedUsedSpace) const;
+	virtual bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
+	                            uint32_t &EstimatedUsedSpace) const;
 
 	void MarshalErrorMessage(const JsonObject &item) const;
 
-	void onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui);
+	virtual void onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui);
 
 	bool NeedsSync(const uint32_t lastControlChangeID) const
 	{
 		return lastControlChangeID < ControlChangeID;
 	}
 
-	void SetControlChangedId(const uint32_t value)
+	void SetControlChangedId(const uint32_t changeId)
 	{
-		ControlChangeID = value;
+		ControlChangeID = changeId;
 	}
 
-	//Add Child Control
+	//Add Child Control TODO remove
 	std::shared_ptr<Widget> add(ControlType type, const std::string &label = "", const std::string &value = "",
-	                             ControlColor color = ControlColor::None,
-	                             const std::function<void(Widget *, UpdateType)> &callback = nullptr);
+	                            ControlColor color = ControlColor::None,
+	                            const std::function<void(Widget *, UpdateType)> &callback = nullptr);
+
+	//Add Child Control
+	template<class T>
+	std::shared_ptr<T> add(const T &widget)
+	{
+		auto ptr = std::make_shared<T>(widget);
+		ptr->parentControl = shared_from_this();
+		children.push_back(ptr);
+		notifyParent();
+		return ptr;
+	}
 
 	//Remove this Control
 	void remove() const;
@@ -126,11 +139,11 @@ public:
 	//get a vector of shared pointers to all children and grandchildren
 	std::vector<std::shared_ptr<Widget> > getChildren() const;
 
-private:
+protected:
 	// notify parent that a widget change has occurred
 	virtual void notifyParent() const;
 
-	uint32_t ControlChangeID = 0;
+	uint32_t ControlChangeID = 1;
 
 	// multiplier for converting a typical controller label or value to a Json object
 	static constexpr auto JsonMarshalingRatio {3};
@@ -151,4 +164,24 @@ public:
 
 	// notify ui that a widget change has occurred. will be called from all other NotifyParent Functions
 	void notifyParent() const override;
+};
+
+class Button final : public Widget
+{
+	bool state {false};
+	std::string b_heading;
+	std::string b_label;
+	std::function<void(Button &)> callback;
+
+public:
+	Button(std::string heading, std::string buttonLable, ControlColor color_in = ControlColor::None,
+	       std::function<void(Button &)>  = nullptr);
+
+	bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
+	                    uint32_t &EstimatedUsedSpace) const override;
+
+	void onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui) override;
+
+	//get Button State. true if button is pressed
+	bool getState() const { return state; }
 };
