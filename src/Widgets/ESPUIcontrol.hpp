@@ -4,6 +4,8 @@
 #include <ArduinoJson.h>
 #include <functional>
 
+extern uint16_t idCounter;
+
 class ESPUIClass;
 
 enum class UpdateType : uint8_t;
@@ -64,11 +66,11 @@ protected:
 	Widget() = default;
 
 public:
-	ControlType type = ControlType::Title;
+	ControlType type_l = ControlType::Title;
 	uint16_t id = 0;
 	std::string label;
-	std::function<void(Widget *, UpdateType)> callback;
-	std::string value;
+	std::function<void(Widget *, UpdateType)> callback_l;
+	std::string value_l;
 	ControlColor color = ControlColor::None;
 	bool wide {false};
 	bool vertical {false};
@@ -90,9 +92,12 @@ public:
 
 	void SendCallback(const UpdateType CallbackType)
 	{
-		if (callback)
-			callback(this, CallbackType);
+		if (callback_l)
+			callback_l(this, CallbackType);
 	}
+
+	bool MarshalControlBasic(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
+								uint32_t &EstimatedUsedSpace) const;
 
 	virtual bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
 	                            uint32_t &EstimatedUsedSpace) const;
@@ -164,24 +169,4 @@ public:
 
 	// notify ui that a widget change has occurred. will be called from all other NotifyParent Functions
 	void notifyParent() const override;
-};
-
-class Button final : public Widget
-{
-	bool state {false};
-	std::string b_heading;
-	std::string b_label;
-	std::function<void(Button &)> callback;
-
-public:
-	Button(std::string heading, std::string buttonLable, ControlColor color_in = ControlColor::None,
-	       std::function<void(Button &)>  = nullptr);
-
-	bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
-	                    uint32_t &EstimatedUsedSpace) const override;
-
-	void onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui) override;
-
-	//get Button State. true if button is pressed
-	bool getState() const { return state; }
 };

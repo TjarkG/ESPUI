@@ -7,6 +7,7 @@
 
 #include "ESPUIclient.hpp"
 #include "Widgets/ESPUIcontrol.hpp"
+#include "Widgets/Button.hpp"
 
 // Values
 enum class UpdateType : uint8_t

@@ -8,10 +8,10 @@ uint16_t idCounter = 0;
 Widget::Widget(const ControlType type, std::string label, std::string value, const ControlColor color,
                std::function<void(Widget *, UpdateType)> callback, const std::shared_ptr<Widget> &parentControl):
 	parentControl(parentControl),
-	type(type),
+	type_l(type),
 	label(std::move(label)),
-	callback(std::move(callback)),
-	value(std::move(value)),
+	callback_l(std::move(callback)),
+	value_l(std::move(value)),
 	color(color)
 {
 	id = ++idCounter;
@@ -87,11 +87,12 @@ void RootWidget::notifyParent() const
 	xSemaphoreGive(ui.ControlsSemaphore);
 }
 
-bool Widget::MarshalControl(const JsonObject &item, const bool refresh, const uint32_t DataOffset,
-                            const uint32_t MaxLength, uint32_t &EstimatedUsedSpace) const
+bool Widget::MarshalControlBasic(const JsonObject &item, const bool refresh, const uint32_t DataOffset,
+                                 const uint32_t MaxLength,
+                                 uint32_t &EstimatedUsedSpace) const
 {
 	// this code assumes MaxMarshaledLength > JsonMarshalingRatio
-	if (refresh && type == ControlType::Tab)
+	if (refresh && type_l == ControlType::Tab)
 		return false;
 
 	// how much space do we expect to use?
@@ -108,11 +109,11 @@ bool Widget::MarshalControl(const JsonObject &item, const bool refresh, const ui
 
 	const uint32_t MaxValueLength = SpaceForMarshaledValue / JsonMarshalingRatio;
 
-	const uint32_t ValueLenToSend = min(value.length() - DataOffset, MaxValueLength);
+	const uint32_t ValueLenToSend = min(value_l.length() - DataOffset, MaxValueLength);
 
 	const uint32_t AdjustedMarshaledLength = ValueLenToSend * JsonMarshalingRatio + MinimumMarshaledLength;
 
-	const bool NeedToFragment = ValueLenToSend < value.length();
+	const bool NeedToFragment = ValueLenToSend < value_l.length();
 
 	if (AdjustedMarshaledLength > MaxLength && 0 != ValueLenToSend)
 	{
@@ -131,22 +132,12 @@ bool Widget::MarshalControl(const JsonObject &item, const bool refresh, const ui
 
 		item[F("offset")] = DataOffset;
 		item[F("length")] = ValueLenToSend;
-		item[F("total")] = value.length();
+		item[F("total")] = value_l.length();
 		item[F("control")] = item;
 	}
 
 	item[F("id")] = id;
-	ControlType TempType = ControlType::Password == type ? ControlType::Text : type;
-	if (refresh)
-	{
-		item[F("type")] = static_cast<uint32_t>(TempType) + static_cast<uint32_t>(ControlType::UpdateOffset);
-	} else
-	{
-		item[F("type")] = static_cast<uint32_t>(TempType);
-	}
-
 	item[F("label")] = label;
-	item[F("value")] = ControlType::Password == type ? "--------" : value.substr(DataOffset, ValueLenToSend);
 	item[F("visible")] = true;
 	item[F("color")] = static_cast<int>(color);
 	item[F("enabled")] = enabled;
@@ -156,18 +147,26 @@ bool Widget::MarshalControl(const JsonObject &item, const bool refresh, const ui
 	if (!inputType.empty()) { item[F("inputType")] = inputType; }
 	if (wide == true) { item[F("wide")] = true; }
 	if (vertical == true) { item[F("vertical")] = true; }
-	const std::shared_ptr<Widget> parent = parentControl.lock();
-	if (parent)
+	if (const std::shared_ptr<Widget> parent = parentControl.lock())
 		item[F("parentControl")] = std::to_string(parent->id);
+
+	// indicate that no additional controls should be sent if fragmenting is on
+	return NeedToFragment || DataOffset;
+}
+
+bool Widget::MarshalControl(const JsonObject &item, const bool refresh, const uint32_t DataOffset,
+                            const uint32_t MaxLength, uint32_t &EstimatedUsedSpace) const
+{
+	ControlType TempType = ControlType::Password == type_l ? ControlType::Text : type_l;
+	item[F("type")] = static_cast<uint32_t>(TempType) + (refresh ? 100 : 0);
+
+	item["value"] = value_l;
 
 	// special case for selects: to preselect an option, you have to add
 	// "selected" to <option>
-	if (ControlType::Option == type)
+	if (ControlType::Option == type_l)
 	{
-		if (!parent)
-		{
-			item[F("selected")] = emptyString;
-		} else if (parent->value == value)
+		if (const std::shared_ptr<Widget> parent = parentControl.lock(); parent && parent->value_l == value_l)
 		{
 			item[F("selected")] = F("selected");
 		} else
@@ -176,8 +175,8 @@ bool Widget::MarshalControl(const JsonObject &item, const bool refresh, const ui
 		}
 	}
 
-	// indicate that no additional controls should be sent if fragmenting is on
-	return NeedToFragment || DataOffset;
+	MarshalControlBasic(item, refresh, DataOffset, MaxLength, EstimatedUsedSpace);
+	return false;
 }
 
 void Widget::MarshalErrorMessage(const JsonObject &item) const
@@ -226,121 +225,33 @@ void Widget::onWsEvent(const std::string &cmd, const std::string &data, ESPUICla
 		SendCallback(UpdateType::PadCenterUp);
 	else if (cmd == "switchActive")
 	{
-		value = "1";
+		value_l = "1";
 		SendCallback(UpdateType::SwitchOn);
 	} else if (cmd == "switchInactive")
 	{
-		value = "0";
+		value_l = "0";
 		SendCallback(UpdateType::SwitchOff);
 	} else if (cmd == "sliderValue")
 	{
-		value = data;
+		value_l = data;
 		SendCallback(UpdateType::Slider);
 	} else if (cmd == "numberValue")
 	{
-		value = data;
+		value_l = data;
 		SendCallback(UpdateType::Number);
 	} else if (cmd == "textValue")
 	{
-		value = data;
+		value_l = data;
 		SendCallback(UpdateType::Text);
 	} else if (cmd == "tabValue")
 		SendCallback(UpdateType::TabValue);
 	else if (cmd == "selectValue")
 	{
-		value = data;
+		value_l = data;
 		SendCallback(UpdateType::SelectChanged);
 	} else if (cmd == "time")
 	{
-		value = data;
+		value_l = data;
 		SendCallback(UpdateType::Time);
 	}
-}
-
-
-Button::Button(std::string heading, std::string buttonLable, const ControlColor color_in,
-               std::function<void(Button &)> callback):
-	b_heading(std::move(heading)), b_label(std::move(buttonLable)), callback(std::move(callback))
-{
-	color = color_in;
-	id = ++idCounter;
-}
-
-bool Button::MarshalControl(const JsonObject &item, const bool refresh, const uint32_t DataOffset, const uint32_t MaxLength,
-	uint32_t &EstimatedUsedSpace) const
-{
-	// how much space do we expect to use?
-	const uint32_t LabelMarshaledLength = b_heading.length() * JsonMarshalingRatio;
-	const uint32_t MinimumMarshaledLength = LabelMarshaledLength + JsonMarshaledOverhead;
-	const uint32_t SpaceForMarshaledValue = MaxLength - MinimumMarshaledLength;
-
-	// will the item fit in the remaining space? Fragment if not
-	if (MaxLength < MinimumMarshaledLength)
-	{
-		EstimatedUsedSpace = 0;
-		return false;
-	}
-
-	const uint32_t MaxValueLength = SpaceForMarshaledValue / JsonMarshalingRatio;
-
-	const uint32_t ValueLenToSend = min(b_label.length() - DataOffset, MaxValueLength);
-
-	const uint32_t AdjustedMarshaledLength = ValueLenToSend * JsonMarshalingRatio + MinimumMarshaledLength;
-
-	const bool NeedToFragment = ValueLenToSend < b_label.length();
-
-	if (AdjustedMarshaledLength > MaxLength && 0 != ValueLenToSend)
-	{
-		EstimatedUsedSpace = 0;
-		return false;
-	}
-
-	EstimatedUsedSpace = AdjustedMarshaledLength;
-
-	// are we fragmenting?
-	if (NeedToFragment || DataOffset)
-	{
-		// fill in the fragment header
-		item[F("type")] = static_cast<uint32_t>(ControlType::Fragment);
-		item[F("id")] = id;
-
-		item[F("offset")] = DataOffset;
-		item[F("length")] = ValueLenToSend;
-		item[F("total")] = b_label.length();
-		item[F("control")] = item;
-	}
-
-	item[F("id")] = id;
-	if (refresh)
-		item[F("type")] = static_cast<uint32_t>(ControlType::Button) + static_cast<uint32_t>(ControlType::UpdateOffset);
-	else
-		item[F("type")] = static_cast<uint32_t>(ControlType::Button);
-
-	item[F("label")] = b_heading;
-	item[F("value")] = b_label.substr(DataOffset, ValueLenToSend);
-	item[F("visible")] = true;
-	item[F("color")] = static_cast<int>(color);
-	item[F("enabled")] = enabled;
-
-	if (!panelStyle.empty()) { item[F("panelStyle")] = panelStyle; }
-	if (!elementStyle.empty()) { item[F("elementStyle")] = elementStyle; }
-	if (wide == true) { item[F("wide")] = true; }
-	if (const std::shared_ptr<Widget> parent = parentControl.lock())
-		item[F("parentControl")] = std::to_string(parent->id);
-
-	// indicate that no additional controls should be sent if fragmenting is on
-	return NeedToFragment || DataOffset;
-}
-
-void Button::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
-{
-	SetControlChangedId(ui.GetNextControlChangeId());
-
-	if (cmd == "buttonDown")
-		state = true;
-	else if (cmd == "buttonUP")
-		state = false;
-
-	if(callback)
-		callback(*this);
 }

@@ -111,7 +111,7 @@ void ESPUIClass::setVertical(Widget &control, const bool vert)
 
 void ESPUIClass::updateControlValue(Widget &control, const std::string &value)
 {
-	control.value = value;
+	control.value_l = value;
 	updateControl(control);
 }
 
