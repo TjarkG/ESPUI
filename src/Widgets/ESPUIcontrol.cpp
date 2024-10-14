@@ -73,6 +73,18 @@ std::vector<std::shared_ptr<Widget> > Widget::getChildren() const
 	return v;
 }
 
+void Widget::setLabel(const std::string &label_in)
+{
+	label = label_in;
+	notifyParent();
+}
+
+void Widget::setStyle(const std::string &style)
+{
+	elementStyle = style;
+	notifyParent();
+}
+
 void Widget::notifyParent() const
 {
 	if (const std::shared_ptr<Widget> parent = parentControl.lock())

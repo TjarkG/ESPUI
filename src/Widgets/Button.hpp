@@ -23,6 +23,9 @@ public:
 
 	//get Button State. true if button is pressed
 	bool getState() const { return state; }
+
+	// set Button label
+	void setButtonLabel(const std::string &newLabel);
 };
 
 #endif //BUTTON_HPP

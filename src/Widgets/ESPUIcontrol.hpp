@@ -140,6 +140,10 @@ public:
 	//get a vector of shared pointers to all children and grandchildren
 	std::vector<std::shared_ptr<Widget> > getChildren() const;
 
+	//Common Edit functions
+
+	void setLabel(const std::string &label_in);
+	void setStyle(const std::string &style);
 protected:
 	// notify parent that a widget change has occurred
 	virtual void notifyParent() const;

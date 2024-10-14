@@ -79,12 +79,6 @@ void ESPUIClass::setPanelStyle(Widget &control, const std::string &style)
 	updateControl(control);
 }
 
-void ESPUIClass::setElementStyle(Widget &control, const std::string &style)
-{
-	control.elementStyle = style;
-	updateControl(control);
-}
-
 void ESPUIClass::setInputType(Widget &control, const std::string &type)
 {
 	control.inputType = type;
@@ -126,24 +120,9 @@ void ESPUIClass::print(Widget &control, const std::string &value)
 	updateControlValue(control, value);
 }
 
-void ESPUIClass::updateLabel(Widget &control, const std::string &value)
-{
-	updateControlValue(control, value);
-}
-
-void ESPUIClass::updateButton(Widget &control, const std::string &value)
-{
-	updateControlValue(control, value);
-}
-
 void ESPUIClass::updateSlider(Widget &control, const int nValue)
 {
 	updateControlValue(control, std::to_string(nValue));
-}
-
-void ESPUIClass::updateSwitcher(Widget &control, const bool nValue)
-{
-	updateControlValue(control, std::string(nValue ? "1" : "0"));
 }
 
 void ESPUIClass::updateNumber(Widget &control, const int number)

@@ -8,6 +8,8 @@
 #include "ESPUIclient.hpp"
 #include "Widgets/ESPUIcontrol.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/Label.hpp"
+#include "Widgets/Switcher.hpp"
 
 // Values
 enum class UpdateType : uint8_t
@@ -77,7 +79,7 @@ public:
 
 	[[nodiscard]] uint32_t GetNextControlChangeId();
 
-	// Update Elements
+	// Update Elements TODO remove all
 	void updateControlValue(Widget &control, const std::string &value);
 
 	void updateControlLabel(Widget &control, const std::string &value);
@@ -85,12 +87,6 @@ public:
 	void updateControl(Widget &control);
 
 	void print(Widget &control, const std::string &value);
-
-	void updateLabel(Widget &control, const std::string &value);
-
-	void updateButton(Widget &control, const std::string &value);
-
-	void updateSwitcher(Widget &control, bool nValue);
 
 	void updateSlider(Widget &control, int nValue);
 
@@ -109,8 +105,6 @@ public:
 	void addGraphPoint(const Widget &control, int nValue) const;
 
 	void setPanelStyle(Widget &control, const std::string &style);
-
-	void setElementStyle(Widget &control, const std::string &style);
 
 	void setInputType(Widget &control, const std::string &type);
 

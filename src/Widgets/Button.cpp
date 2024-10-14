@@ -34,3 +34,9 @@ void Button::onWsEvent(const std::string &cmd, const std::string &data, ESPUICla
 	if (callback)
 		callback(*this);
 }
+
+void Button::setButtonLabel(const std::string &newLabel)
+{
+	b_label = newLabel;
+	notifyParent();
+}
