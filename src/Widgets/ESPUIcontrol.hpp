@@ -96,13 +96,9 @@ public:
 			callback_l(this, CallbackType);
 	}
 
-	bool MarshalControlBasic(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
-								uint32_t &EstimatedUsedSpace) const;
+	void MarshalControlBasic(const JsonObject &item, bool refresh) const;
 
-	virtual bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
-	                            uint32_t &EstimatedUsedSpace) const;
-
-	void MarshalErrorMessage(const JsonObject &item) const;
+	virtual void MarshalControl(const JsonObject &item, bool refresh) const;
 
 	virtual void onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui);
 

@@ -17,8 +17,7 @@ public:
 	Button(std::string heading, std::string buttonLable, ControlColor color_in = ControlColor::None,
 		   std::function<void(Button &)>  = nullptr);
 
-	bool MarshalControl(const JsonObject &item, bool refresh, uint32_t DataOffset, uint32_t MaxLength,
-						uint32_t &EstimatedUsedSpace) const override;
+	void MarshalControl(const JsonObject &item, bool refresh) const override;
 
 	void onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui) override;
 

@@ -2,10 +2,10 @@
 #include "ESPUI.hpp"
 #include "Widgets/ESPUIcontrol.hpp"
 
-bool WebsocketClient::NotifyClient()
+void WebsocketClient::NotifyClient()
 {
 	if (ClientState != ClientState_t::Idle)
-		return true;
+		return;
 
 	// Clear the type so that we capture any changes in type that happen
 	// while we are processing the current request.
@@ -17,25 +17,27 @@ bool WebsocketClient::NotifyClient()
 	{
 		case ClientUpdateType_t::Synchronized:
 		{
-			return true;
+			return;
 		}
 		case ClientUpdateType_t::UpdateNeeded:
 		{
 			ClientState = ClientState_t::Sending;
-			return SendClientNotification(ClientUpdateType_t::UpdateNeeded);
+			SendClientNotification(ClientUpdateType_t::UpdateNeeded);
+			return;
 		}
 		case ClientUpdateType_t::RebuildNeeded:
 		{
 			ClientState = ClientState_t::Rebuilding;
-			return SendClientNotification(ClientUpdateType_t::RebuildNeeded);
+			SendClientNotification(ClientUpdateType_t::RebuildNeeded);
+			return;
 		}
 		case ClientUpdateType_t::ReloadNeeded:
 		{
 			ClientState = ClientState_t::Reloading;
-			return SendClientNotification(ClientUpdateType_t::ReloadNeeded);
+			SendClientNotification(ClientUpdateType_t::ReloadNeeded);
+			return;
 		}
 	}
-	return false;
 }
 
 void WebsocketClient::ProcessAck(const uint16_t id, const std::string &FragmentRequest)
@@ -84,14 +86,14 @@ bool WebsocketClient::CanSend() const
 
 void WebsocketClient::FillInHeader(JsonDocument &document) const
 {
-	document[F("type")] = ExtendGUI;
-	document[F("sliderContinuous")] = sliderContinuous;
-	document[F("startindex")] = 0;
-	document[F("totalcontrols")] = ui.root->getChildCount();
-	const JsonArray items = document[F("controls")].to<JsonArray>();
+	document["type"] = ExtendGUI;
+	document["sliderContinuous"] = sliderContinuous;
+	document["startindex"] = 0;
+	document["totalcontrols"] = ui.root->getChildCount();
+	const JsonArray items = document["controls"].to<JsonArray>();
 	const JsonObject titleItem = items.add<JsonObject>();
-	titleItem[F("type")] = static_cast<int>(ControlType::Title);
-	titleItem[F("label")] = ui.uiTitle;
+	titleItem["type"] = static_cast<int>(ControlType::Title);
+	titleItem["label"] = ui.uiTitle;
 }
 
 bool WebsocketClient::IsSynchronized() const
@@ -99,19 +101,17 @@ bool WebsocketClient::IsSynchronized() const
 	return ClientUpdateType_t::Synchronized == ClientUpdateType && ClientState == ClientState_t::Idle;
 }
 
-bool WebsocketClient::SendClientNotification(const ClientUpdateType_t value) const
+void WebsocketClient::SendClientNotification(const ClientUpdateType_t value) const
 {
 	if (!CanSend())
-		return false;
+		return;
 
 	JsonDocument document;
 	FillInHeader(document);
 	if (ClientUpdateType_t::ReloadNeeded == value)
 		document["type"] = static_cast<int>(Reload);
 	// dont send any controls
-
-	const bool Response = SendJsonDocToWebSocket(document);
-	return Response;
+	SendJsonDocToWebSocket(document);
 }
 
 void WebsocketClient::NotifyClient(const ClientUpdateType_t value)
@@ -121,7 +121,7 @@ void WebsocketClient::NotifyClient(const ClientUpdateType_t value)
 }
 
 // Handle Websockets Communication
-bool WebsocketClient::onWsEvent(const AwsEventType type, void *arg, const uint8_t *data, const size_t len)
+bool WebsocketClient::onWsEvent(const AwsEventType type, void *, const uint8_t *data, const size_t len)
 {
 	bool Response = false;
 
@@ -140,7 +140,6 @@ bool WebsocketClient::onWsEvent(const AwsEventType type, void *arg, const uint8_
 
 			for (size_t i = 0; i < len; i++)
 				msg += static_cast<char>(data[i]);
-
 			const auto delim1 {msg.find(':')};
 			const auto delim2 {msg.find_last_of(':')};
 
@@ -159,10 +158,8 @@ bool WebsocketClient::onWsEvent(const AwsEventType type, void *arg, const uint8_
 				if (!value.empty())
 					ProcessAck(0xFFFF, value);
 				else
-				{
-					Serial.println(F(
-						"ERROR:WebsocketClient::OnWsEvent:WS_EVT_DATA:uifragmentok:ProcessAck:Fragment Header is missing"));
-				}
+					Serial.println(
+						"ERROR:WebsocketClient::OnWsEvent:WS_EVT_DATA:uifragmentok:ProcessAck:Fragment Header is missing");
 				break;
 			}
 
@@ -195,11 +192,8 @@ uint32_t WebsocketClient::prepareJSONChunk(JsonDocument &rootDoc, const bool InU
 {
 	xSemaphoreTake(ui.ControlsSemaphore, portMAX_DELAY);
 
-	const uint32_t MaxMarshaledJsonSize = !InUpdateMode ? jsonInitialDocumentSize : jsonUpdateDocumentSize;
-	uint32_t EstimatedUsedMarshaledJsonSize = 0;
-
 	// Follow the list until control points to the startindex node
-	const JsonArray items = rootDoc[F("controls")];
+	const JsonArray items = rootDoc["controls"];
 
 	if (!value.empty())
 	{
@@ -212,26 +206,19 @@ uint32_t WebsocketClient::prepareJSONChunk(JsonDocument &rootDoc, const bool InU
 				deserializeJson(FragmentRequest, value.substr(FragmentRequestStartOffset));
 		if (DeserializationError::Ok != error)
 		{
-			Serial.println(F("ERROR:prepareJSONChunk:Fragmentation:Could not extract json from the fragment request"));
+			Serial.println("ERROR:prepareJSONChunk:Fragmentation:Could not extract json from the fragment request");
 			xSemaphoreGive(ui.ControlsSemaphore);
 			return 0;
 		}
 
 		if (!FragmentRequest["id"].is<std::string>())
 		{
-			Serial.println(F("ERROR:prepareJSONChunk:Fragmentation:Request does not contain a control ID"));
+			Serial.println("ERROR:prepareJSONChunk:Fragmentation:Request does not contain a control ID");
 			xSemaphoreGive(ui.ControlsSemaphore);
 			return 0;
 		}
-		const auto ControlId = FragmentRequest[F("id")].as<uint16_t>();
+		const auto ControlId = FragmentRequest["id"].as<uint16_t>();
 
-		if (!FragmentRequest["offset"].is<std::string>())
-		{
-			Serial.println(F("ERROR:prepareJSONChunk:Fragmentation:Request does not contain a starting offset"));
-			xSemaphoreGive(ui.ControlsSemaphore);
-			return 0;
-		}
-		const auto DataOffset = FragmentRequest[F("offset")].as<uint32_t>();
 		const auto control = ui.root->find(ControlId);
 		if (nullptr == control)
 		{
@@ -243,14 +230,8 @@ uint32_t WebsocketClient::prepareJSONChunk(JsonDocument &rootDoc, const bool InU
 		}
 
 		//Send Update for a Single Element
-		auto item = items.add<JsonObject>();
-		const uint32_t RemainingSpace = MaxMarshaledJsonSize - 100;
-		uint32_t SpaceUsedByMarshaledControl = 0;
-		control->MarshalControl(item, InUpdateMode, DataOffset, RemainingSpace, SpaceUsedByMarshaledControl);
-
-		rootDoc.clear();
-		item = items.add<JsonObject>();
-		control->MarshalErrorMessage(item);
+		const auto item = items.add<JsonObject>();
+		control->MarshalControl(item, InUpdateMode);
 		xSemaphoreGive(ui.ControlsSemaphore);
 		return 1;
 	}
@@ -267,31 +248,7 @@ uint32_t WebsocketClient::prepareJSONChunk(JsonDocument &rootDoc, const bool InU
 
 		auto item = items.add<JsonObject>();
 		elementCount++;
-		const uint32_t RemainingSpace = MaxMarshaledJsonSize - EstimatedUsedMarshaledJsonSize - 100;
-		uint32_t SpaceUsedByMarshaledControl = 0;
-		const bool ControlIsFragmented = control->MarshalControl(item, InUpdateMode, 0, RemainingSpace,
-		                                                         SpaceUsedByMarshaledControl);
-		EstimatedUsedMarshaledJsonSize += SpaceUsedByMarshaledControl;
-
-		// did the control get added to the doc?
-		if (SpaceUsedByMarshaledControl == 0 && elementCount == 1)
-		{
-			rootDoc.clear();
-			item = items.add<JsonObject>();
-			control->MarshalErrorMessage(item);
-			elementCount = 0;
-			break;
-		}
-
-		if (SpaceUsedByMarshaledControl == 0)
-		{
-			items.remove(elementCount);
-			--elementCount;
-			break;
-		}
-
-		if (ControlIsFragmented || MaxMarshaledJsonSize < EstimatedUsedMarshaledJsonSize + 100)
-			break;
+		control->MarshalControl(item, InUpdateMode);
 	}
 
 	xSemaphoreGive(ui.ControlsSemaphore);
@@ -323,38 +280,36 @@ bool WebsocketClient::SendControlsToClient(const uint16_t start_idx, const Clien
 {
 	if (!CanSend())
 		return false;
-	if (start_idx >= ui.root->getChildCount() && FragmentRequest.empty())
-		return true;
 
 	JsonDocument document;
 	FillInHeader(document);
-	document[F("startindex")] = start_idx;
-	document[F("totalcontrols")] = 0xFFFF;
+	document["startindex"] = start_idx;
+	document["totalcontrols"] = 0xFFFF;
 
 	if (0 == start_idx)
 	{
 		document["type"] = ClientUpdateType_t::RebuildNeeded == TransferMode ? InitialGui : ExtendGUI;
 		CurrentSyncID = NextSyncID;
 		NextSyncID = ui.GetNextControlChangeId();
-	}
-	if (prepareJSONChunk(document, ClientUpdateType_t::UpdateNeeded == TransferMode, FragmentRequest))
-	{
-		(void) SendJsonDocToWebSocket(document);
-		return false;
+
+		if (prepareJSONChunk(document, ClientUpdateType_t::UpdateNeeded == TransferMode, FragmentRequest))
+		{
+			SendJsonDocToWebSocket(document);
+			return false;
+		}
 	}
 	return true;
 }
 
-bool WebsocketClient::SendJsonDocToWebSocket(const JsonDocument &document) const
+void WebsocketClient::SendJsonDocToWebSocket(const JsonDocument &document) const
 {
 	if (!CanSend())
-		return false;
+		return;
 
 	std::string json {};
 	serializeJson(document, json);
 
 	client->text(json.c_str());
-	return true;
 }
 
 void WebsocketClient::SetState(const ClientUpdateType_t value)

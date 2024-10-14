@@ -2,7 +2,6 @@
 
 #include "ESPUI.hpp"
 
-static const std::string ControlError = "*** ESPUI ERROR: Could not transfer control ***";
 uint16_t idCounter = 0;
 
 Widget::Widget(const ControlType type, std::string label, std::string value, const ControlColor color,
@@ -87,78 +86,31 @@ void RootWidget::notifyParent() const
 	xSemaphoreGive(ui.ControlsSemaphore);
 }
 
-bool Widget::MarshalControlBasic(const JsonObject &item, const bool refresh, const uint32_t DataOffset,
-                                 const uint32_t MaxLength,
-                                 uint32_t &EstimatedUsedSpace) const
+void Widget::MarshalControlBasic(const JsonObject &item, const bool refresh) const
 {
 	// this code assumes MaxMarshaledLength > JsonMarshalingRatio
 	if (refresh && type_l == ControlType::Tab)
-		return false;
+		return;
 
-	// how much space do we expect to use?
-	const uint32_t LabelMarshaledLength = label.length() * JsonMarshalingRatio;
-	const uint32_t MinimumMarshaledLength = LabelMarshaledLength + JsonMarshaledOverhead;
-	const uint32_t SpaceForMarshaledValue = MaxLength - MinimumMarshaledLength;
+	item["id"] = id;
+	item["label"] = label;
+	item["visible"] = true;
+	item["color"] = static_cast<int>(color);
+	item["enabled"] = enabled;
 
-	// will the item fit in the remaining space? Fragment if not
-	if (MaxLength < MinimumMarshaledLength)
-	{
-		EstimatedUsedSpace = 0;
-		return false;
-	}
-
-	const uint32_t MaxValueLength = SpaceForMarshaledValue / JsonMarshalingRatio;
-
-	const uint32_t ValueLenToSend = min(value_l.length() - DataOffset, MaxValueLength);
-
-	const uint32_t AdjustedMarshaledLength = ValueLenToSend * JsonMarshalingRatio + MinimumMarshaledLength;
-
-	const bool NeedToFragment = ValueLenToSend < value_l.length();
-
-	if (AdjustedMarshaledLength > MaxLength && 0 != ValueLenToSend)
-	{
-		EstimatedUsedSpace = 0;
-		return false;
-	}
-
-	EstimatedUsedSpace = AdjustedMarshaledLength;
-
-	// are we fragmenting?
-	if (NeedToFragment || DataOffset)
-	{
-		// fill in the fragment header
-		item[F("type")] = static_cast<uint32_t>(ControlType::Fragment);
-		item[F("id")] = id;
-
-		item[F("offset")] = DataOffset;
-		item[F("length")] = ValueLenToSend;
-		item[F("total")] = value_l.length();
-		item[F("control")] = item;
-	}
-
-	item[F("id")] = id;
-	item[F("label")] = label;
-	item[F("visible")] = true;
-	item[F("color")] = static_cast<int>(color);
-	item[F("enabled")] = enabled;
-
-	if (!panelStyle.empty()) { item[F("panelStyle")] = panelStyle; }
-	if (!elementStyle.empty()) { item[F("elementStyle")] = elementStyle; }
-	if (!inputType.empty()) { item[F("inputType")] = inputType; }
-	if (wide == true) { item[F("wide")] = true; }
-	if (vertical == true) { item[F("vertical")] = true; }
+	if (!panelStyle.empty()) { item["panelStyle"] = panelStyle; }
+	if (!elementStyle.empty()) { item["elementStyle"] = elementStyle; }
+	if (!inputType.empty()) { item["inputType"] = inputType; }
+	if (wide == true) { item["wide"] = true; }
+	if (vertical == true) { item["vertical"] = true; }
 	if (const std::shared_ptr<Widget> parent = parentControl.lock())
-		item[F("parentControl")] = std::to_string(parent->id);
-
-	// indicate that no additional controls should be sent if fragmenting is on
-	return NeedToFragment || DataOffset;
+		item["parentControl"] = std::to_string(parent->id);
 }
 
-bool Widget::MarshalControl(const JsonObject &item, const bool refresh, const uint32_t DataOffset,
-                            const uint32_t MaxLength, uint32_t &EstimatedUsedSpace) const
+void Widget::MarshalControl(const JsonObject &item, const bool refresh) const
 {
 	ControlType TempType = ControlType::Password == type_l ? ControlType::Text : type_l;
-	item[F("type")] = static_cast<uint32_t>(TempType) + (refresh ? 100 : 0);
+	item["type"] = static_cast<uint32_t>(TempType) + (refresh ? 100 : 0);
 
 	item["value"] = value_l;
 
@@ -168,31 +120,14 @@ bool Widget::MarshalControl(const JsonObject &item, const bool refresh, const ui
 	{
 		if (const std::shared_ptr<Widget> parent = parentControl.lock(); parent && parent->value_l == value_l)
 		{
-			item[F("selected")] = F("selected");
+			item["selected"] = "selected";
 		} else
 		{
-			item[F("selected")] = "";
+			item["selected"] = "";
 		}
 	}
 
-	MarshalControlBasic(item, refresh, DataOffset, MaxLength, EstimatedUsedSpace);
-	return false;
-}
-
-void Widget::MarshalErrorMessage(const JsonObject &item) const
-{
-	item[F("id")] = id;
-	item[F("type")] = static_cast<uint32_t>(ControlType::Label);
-	item[F("label")] = ControlError;
-	item[F("value")] = ControlError;
-	item[F("visible")] = true;
-	item[F("color")] = static_cast<int>(ControlColor::Orange);
-	item[F("enabled")] = true;
-
-	if (const std::shared_ptr<Widget> parent = parentControl.lock())
-	{
-		item[F("parentControl")] = std::to_string(parent->id);
-	}
+	MarshalControlBasic(item, refresh);
 }
 
 void Widget::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)

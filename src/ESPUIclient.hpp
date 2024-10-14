@@ -51,7 +51,7 @@ class WebsocketClient final
 
 	ClientState_t ClientState = ClientState_t::Idle;
 
-	bool NotifyClient();
+	void NotifyClient();
 
 	void ProcessAck(uint16_t id, const std::string &FragmentRequest);
 
@@ -65,7 +65,7 @@ class WebsocketClient final
 
 	bool SendControlsToClient(uint16_t start_idx, ClientUpdateType_t TransferMode, const std::string &FragmentRequest);
 
-	bool SendClientNotification(ClientUpdateType_t value) const;
+	void SendClientNotification(ClientUpdateType_t value) const;
 
 public:
 	WebsocketClient(AsyncWebSocketClient *client, ESPUIClass &ui):
@@ -86,5 +86,5 @@ public:
 
 	void SetState(ClientUpdateType_t value);
 
-	bool SendJsonDocToWebSocket(const JsonDocument &document) const;
+	void SendJsonDocToWebSocket(const JsonDocument &document) const;
 };

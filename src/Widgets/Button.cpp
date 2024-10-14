@@ -15,14 +15,11 @@ Button::Button(std::string heading, std::string buttonLable, const ControlColor 
 	id = ++idCounter;
 }
 
-bool Button::MarshalControl(const JsonObject &item, const bool refresh, const uint32_t DataOffset,
-                            const uint32_t MaxLength,
-                            uint32_t &EstimatedUsedSpace) const
+void Button::MarshalControl(const JsonObject &item, const bool refresh) const
 {
-	MarshalControlBasic(item, refresh, DataOffset, MaxLength, EstimatedUsedSpace);
+	MarshalControlBasic(item, refresh);
 	item["type"] = static_cast<uint32_t>(ControlType::Button) + (refresh ? 100 : 0);
 	item["value"] = b_label;
-	return false;
 }
 
 void Button::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
