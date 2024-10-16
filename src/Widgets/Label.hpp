@@ -12,7 +12,7 @@ class Label final : public Widget
 	std::string text;
 
 public:
-	Label(std::string heading, std::string text, ControlColor color_in = ControlColor::None);
+	explicit Label(std::string heading, std::string text, ControlColor color_in = ControlColor::None);
 
 	void MarshalControl(const JsonObject &item, bool refresh) const override;
 

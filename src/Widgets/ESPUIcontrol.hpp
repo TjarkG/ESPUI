@@ -73,7 +73,6 @@ public:
 	std::string value_l;
 	ControlColor color = ControlColor::None;
 	bool wide {false};
-	bool vertical {false};
 	bool enabled {true};
 	std::string panelStyle;
 	std::string elementStyle;
@@ -143,7 +142,15 @@ public:
 	//Common Edit functions
 
 	void setLabel(const std::string &label_in);
+
 	void setStyle(const std::string &style);
+
+	void setPanelStyle(const std::string &style);
+
+	void setWide(bool wide_in = true);
+
+	void setEnabled(bool wide_in = true);
+
 protected:
 	// notify parent that a widget change has occurred
 	virtual void notifyParent() const;

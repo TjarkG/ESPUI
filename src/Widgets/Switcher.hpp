@@ -10,6 +10,7 @@
 class Switcher final : public Widget
 {
 	bool state {false};
+	bool vertical {false};
 	std::function<void(Switcher &)> callback;
 
 public:
@@ -25,6 +26,10 @@ public:
 
 	// set Switcher State
 	void set(bool state_in);
+
+	void setVertical(bool ver = true);
+
+	bool isVertical() const { return vertical; }
 };
 
 

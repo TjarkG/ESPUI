@@ -73,33 +73,9 @@ uint32_t ESPUIClass::GetNextControlChangeId()
 	return ++ControlChangeID;
 }
 
-void ESPUIClass::setPanelStyle(Widget &control, const std::string &style)
-{
-	control.panelStyle = style;
-	updateControl(control);
-}
-
 void ESPUIClass::setInputType(Widget &control, const std::string &type)
 {
 	control.inputType = type;
-	updateControl(control);
-}
-
-void ESPUIClass::setPanelWide(Widget &control, const bool wide)
-{
-	control.wide = wide;
-	updateControl(control);
-}
-
-void ESPUIClass::setEnabled(Widget &control, const bool enabled)
-{
-	control.enabled = enabled;
-	updateControl(control);
-}
-
-void ESPUIClass::setVertical(Widget &control, const bool vert)
-{
-	control.vertical = vert;
 	updateControl(control);
 }
 

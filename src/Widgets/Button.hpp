@@ -14,7 +14,7 @@ class Button final : public Widget
 	std::function<void(Button &)> callback;
 
 public:
-	Button(std::string heading, std::string buttonLable, ControlColor color_in = ControlColor::None,
+	explicit Button(std::string heading, std::string buttonLable, ControlColor color_in = ControlColor::None,
 		   std::function<void(Button &)>  = nullptr);
 
 	void MarshalControl(const JsonObject &item, bool refresh) const override;

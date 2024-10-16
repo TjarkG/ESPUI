@@ -461,6 +461,8 @@ function start() {
                     addToHTML(data);
                     rangeSlider(!sliderContinuous);
                 }
+                $('#sl' + data.id).attr("min", data.min);
+                $('#sl' + data.id).attr("max", data.max);
                 break;
 
             case UI_TAB:

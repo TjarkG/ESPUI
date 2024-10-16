@@ -85,6 +85,24 @@ void Widget::setStyle(const std::string &style)
 	notifyParent();
 }
 
+void Widget::setPanelStyle(const std::string &style)
+{
+	panelStyle = style;
+	notifyParent();
+}
+
+void Widget::setWide(const bool wide_in)
+{
+	wide = wide_in;
+	notifyParent();
+}
+
+void Widget::setEnabled(const bool wide_in)
+{
+	wide = wide_in;
+	notifyParent();
+}
+
 void Widget::notifyParent() const
 {
 	if (const std::shared_ptr<Widget> parent = parentControl.lock())
@@ -113,10 +131,9 @@ void Widget::MarshalControlBasic(const JsonObject &item, const bool refresh) con
 	if (!panelStyle.empty()) { item["panelStyle"] = panelStyle; }
 	if (!elementStyle.empty()) { item["elementStyle"] = elementStyle; }
 	if (!inputType.empty()) { item["inputType"] = inputType; }
-	if (wide == true) { item["wide"] = true; }
-	if (vertical == true) { item["vertical"] = true; }
+	if (wide) { item["wide"] = true; }
 	if (const std::shared_ptr<Widget> parent = parentControl.lock())
-		item["parentControl"] = std::to_string(parent->id);
+		item["parentControl"] = parent->id;
 }
 
 void Widget::MarshalControl(const JsonObject &item, const bool refresh) const

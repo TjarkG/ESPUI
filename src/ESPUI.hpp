@@ -7,8 +7,12 @@
 
 #include "ESPUIclient.hpp"
 #include "Widgets/ESPUIcontrol.hpp"
+
+// include all Widgets
+// ReSharper disable CppUnusedIncludeDirective
 #include "Widgets/Button.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/Slider.hpp"
 #include "Widgets/Switcher.hpp"
 
 // Values
@@ -104,13 +108,5 @@ public:
 
 	void addGraphPoint(const Widget &control, int nValue) const;
 
-	void setPanelStyle(Widget &control, const std::string &style);
-
 	void setInputType(Widget &control, const std::string &type);
-
-	void setPanelWide(Widget &control, bool wide);
-
-	void setVertical(Widget &control, bool vert = true);
-
-	void setEnabled(Widget &control, bool enabled = true);
 };
