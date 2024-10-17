@@ -27,7 +27,7 @@ void Slider::MarshalControl(const JsonObject &item, const bool refresh) const
 
 void Slider::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
 {
-	SetControlChangedId(ui.GetNextControlChangeId());
+	ControlChangeID = ESPUIClass::GetNextControlChangeId();
 
 	if (cmd == "sliderValue")
 	{

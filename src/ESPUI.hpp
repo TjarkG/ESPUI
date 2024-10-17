@@ -81,7 +81,7 @@ public:
 
 	void begin(const char *_title, uint16_t port = 80); // Setup server and page in Memory mode
 
-	[[nodiscard]] uint32_t GetNextControlChangeId();
+	[[nodiscard]] static uint32_t GetNextControlChangeId();
 
 	// Update Elements TODO remove all
 	void updateControlValue(Widget &control, const std::string &value);

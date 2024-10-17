@@ -22,7 +22,7 @@ void Label::MarshalControl(const JsonObject &item, const bool refresh) const
 
 void Label::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
 {
-	SetControlChangedId(ui.GetNextControlChangeId());
+	SetControlChangedId(ESPUIClass::GetNextControlChangeId());
 }
 
 

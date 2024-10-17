@@ -123,8 +123,6 @@ void WebsocketClient::NotifyClient(const ClientUpdateType_t value)
 // Handle Websockets Communication
 bool WebsocketClient::onWsEvent(const AwsEventType type, void *, const uint8_t *data, const size_t len)
 {
-	bool Response = false;
-
 	switch (type)
 	{
 		case WS_EVT_CONNECT:
@@ -150,28 +148,22 @@ bool WebsocketClient::onWsEvent(const AwsEventType type, void *, const uint8_t *
 			if (cmd == "uiok")
 			{
 				ProcessAck(id, "");
-				break;
-			}
-
-			if (cmd == "uifragmentok")
+			} else if (cmd == "uifragmentok")
 			{
 				if (!value.empty())
 					ProcessAck(0xFFFF, value);
 				else
 					Serial.println(
 						"ERROR:WebsocketClient::OnWsEvent:WS_EVT_DATA:uifragmentok:ProcessAck:Fragment Header is missing");
-				break;
+			} else if (cmd != "uiuok")
+			{
+				if (const auto control = ui.getControl(id))
+				{
+					control->onWsEvent(cmd, value, ui);
+					// notify other clients of change
+					return true;
+				}
 			}
-
-			if (cmd == "uiuok")
-				break;
-
-			const auto control = ui.getControl(id);
-			if (nullptr == control)
-				break;
-			control->onWsEvent(cmd, value, ui);
-			// notify other clients of change
-			Response = true;
 			break;
 		}
 
@@ -179,7 +171,7 @@ bool WebsocketClient::onWsEvent(const AwsEventType type, void *, const uint8_t *
 			break;
 	} // end switch
 
-	return Response;
+	return false;
 }
 
 /*
@@ -290,7 +282,7 @@ bool WebsocketClient::SendControlsToClient(const uint16_t start_idx, const Clien
 	{
 		document["type"] = ClientUpdateType_t::RebuildNeeded == TransferMode ? InitialGui : ExtendGUI;
 		CurrentSyncID = NextSyncID;
-		NextSyncID = ui.GetNextControlChangeId();
+		NextSyncID = ESPUIClass::GetNextControlChangeId();
 
 		if (prepareJSONChunk(document, ClientUpdateType_t::UpdateNeeded == TransferMode, FragmentRequest))
 		{

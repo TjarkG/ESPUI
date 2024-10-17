@@ -66,10 +66,6 @@ uint32_t ESPUIClass::GetNextControlChangeId()
 {
 	static uint32_t ControlChangeID = 0;
 
-	// force a reload which resets the counters
-	if (static_cast<uint32_t>(-1) == ControlChangeID)
-		NotifyClients(ClientUpdateType_t::ReloadNeeded);
-
 	return ++ControlChangeID;
 }
 

@@ -161,7 +161,7 @@ void Widget::MarshalControl(const JsonObject &item, const bool refresh) const
 
 void Widget::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
 {
-	SetControlChangedId(ui.GetNextControlChangeId());
+	SetControlChangedId(ESPUIClass::GetNextControlChangeId());
 
 	if (cmd == "buttonDown")
 		SendCallback(UpdateType::ButtonDown);

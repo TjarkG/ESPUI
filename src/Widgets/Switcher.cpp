@@ -25,7 +25,7 @@ void Switcher::MarshalControl(const JsonObject &item, const bool refresh) const
 
 void Switcher::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
 {
-	SetControlChangedId(ui.GetNextControlChangeId());
+	SetControlChangedId(ESPUIClass::GetNextControlChangeId());
 
 	if (cmd == "switchActive")
 		state = true;
