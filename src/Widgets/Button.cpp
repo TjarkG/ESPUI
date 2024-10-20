@@ -24,7 +24,7 @@ void Button::MarshalControl(const JsonObject &item, const bool refresh) const
 
 void Button::onWsEvent(const std::string &cmd, const std::string &data, ESPUIClass &ui)
 {
-	SetControlChangedId(ESPUIClass::GetNextControlChangeId());
+	ControlChangeID = ESPUIClass::GetNextControlChangeId();
 
 	if (cmd == "buttonDown")
 		state = true;

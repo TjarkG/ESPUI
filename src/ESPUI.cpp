@@ -69,12 +69,6 @@ uint32_t ESPUIClass::GetNextControlChangeId()
 	return ++ControlChangeID;
 }
 
-void ESPUIClass::setInputType(Widget &control, const std::string &type)
-{
-	control.inputType = type;
-	updateControl(control);
-}
-
 void ESPUIClass::updateControlValue(Widget &control, const std::string &value)
 {
 	control.value_l = value;

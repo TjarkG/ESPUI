@@ -11,7 +11,9 @@
 // include all Widgets
 // ReSharper disable CppUnusedIncludeDirective
 #include "Widgets/Button.hpp"
+#include "Widgets/Entry.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/Pad.hpp"
 #include "Widgets/Slider.hpp"
 #include "Widgets/Switcher.hpp"
 
@@ -107,6 +109,4 @@ public:
 	void clearGraph(const Widget &control) const;
 
 	void addGraphPoint(const Widget &control, int nValue) const;
-
-	void setInputType(Widget &control, const std::string &type);
 };

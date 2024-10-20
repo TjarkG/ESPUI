@@ -39,7 +39,6 @@ enum class ControlType : uint8_t
 	FileDisplay,
 
 	Fragment     = 98,
-	Password     = 99,
 	UpdateOffset = 100,
 };
 
@@ -76,7 +75,6 @@ public:
 	bool enabled {true};
 	std::string panelStyle;
 	std::string elementStyle;
-	std::string inputType;
 
 	static constexpr uint16_t noParent = 0xffff;
 

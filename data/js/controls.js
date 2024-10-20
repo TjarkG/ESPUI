@@ -369,7 +369,11 @@ function start() {
             case UI_SELECT:
             case UI_GAUGE:
             case UI_SEPARATOR:
-                if (data.visible) addToHTML(data);
+                if (data.visible) {
+                    addToHTML(data);
+                    if (data.max)
+                        $('#text' + data.id).attr("maxlength", data.max);
+                }
                 break;
 
             /*

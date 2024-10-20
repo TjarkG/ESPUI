@@ -130,7 +130,6 @@ void Widget::MarshalControlBasic(const JsonObject &item, const bool refresh) con
 
 	if (!panelStyle.empty()) { item["panelStyle"] = panelStyle; }
 	if (!elementStyle.empty()) { item["elementStyle"] = elementStyle; }
-	if (!inputType.empty()) { item["inputType"] = inputType; }
 	if (wide) { item["wide"] = true; }
 	if (const std::shared_ptr<Widget> parent = parentControl.lock())
 		item["parentControl"] = parent->id;
@@ -138,8 +137,7 @@ void Widget::MarshalControlBasic(const JsonObject &item, const bool refresh) con
 
 void Widget::MarshalControl(const JsonObject &item, const bool refresh) const
 {
-	ControlType TempType = ControlType::Password == type_l ? ControlType::Text : type_l;
-	item["type"] = static_cast<uint32_t>(TempType) + (refresh ? 100 : 0);
+	item["type"] = static_cast<uint32_t>(type_l) + (refresh ? 100 : 0);
 
 	item["value"] = value_l;
 
